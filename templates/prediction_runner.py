@@ -82,7 +82,7 @@ def score(jsonfile, userfile="userscores.json"):
     except TypeError:
         json.dump(users,file, sort_keys=True,indent=4)
     file.close
-    
+
 def add_prediction(jsonfile,id,statement,housebet=50,*args):
     try:
         file = open(jsonfile,'r+')
@@ -99,9 +99,13 @@ def add_prediction(jsonfile,id,statement,housebet=50,*args):
         raise ValueError
     import time
     now = int(time.time())
-    jsondata.append({"id":id, "statement":statement,
+    bet = {"id":id, "statement":statement,
         "history":[{"timestamp":now,"credence":housebet,"signature":"House"}],
-        "settled":False,"result":None,"tags":list(args)})
+        "settled":False,"result":None}
+    if args:
+        bet["tags"] = list(args)
+
+    jsondata.append(bet)
     try:
         json.dump(jsondata,file,indent=4 * ' ')
     except TypeError:
