@@ -15,35 +15,38 @@ def calculate_bits(result, market, update):
 
 #open the json file
 
-def score(jsonfile, userfile=None):
+def score(jsonfile, userfile="userscores.json"):
     import time
+    now = int(time.time()) # i think this is utc, it might break cross-time zone if not.
     try:
         file = open(jsonfile,'r')
-        predictions = json.load(file.read())
-        file.close()
     #    if prediction_file.read() == "":
      #       raise IOError("SHTOP IT")
     except IOError:
-        now = int(time.time())
-        jsondata = json.loads(
-        """[{"statement": "Sample Prediction: This prediction is false.",
-                "history":
-                    [{"timestamp":%d, "credence":50, "signature":"House"},
-                    {"timestamp":1419028832, "credence":60, "signature":"Me"},
-                    {"timestamp":1419028832, "credence":20, "signature":"You"},
-                    {"timestamp":1419028832, "credence":50, "signature":"Me"}],
-                "settled":true,
-                "result":true,
-                "tags":[
-                    "paradoxes","initial sample"]
+        file = open(jsonfile,'w')
+        file.write("""[{
+            "id":"example",
+            "statement": "Sample Prediction: This prediction is false.",
+            "history":
+                [{"timestamp":%d, "credence":50, "signature":"House"}],
+            "settled":false,
+            "result":null,
+            "tags":[
+                "paradox", "example"]
             }]""" % (now))
+        file.close()
+        file = open(jsonfile,'r')
+    finally:
+        jsondata = json.loads(file.read())
+        file.close()
+        
+        #second verse, same as the first!
     try:
         file = open(userfile,'r')
         users = json.loads(file.read())
         file.close()
     except (IOError, TypeError):
-        now = int(time.time())
-        users = json.loads("""{"House":{"bits":0, "last-update":%d}, "Me":{"bits":0, "last-update":%d}}""" % (now, now))
+        users = json.loads("""{"House":{}}""" % (now))
     # print predictions,"\n\n", users, "\n\n"
 
     #load the subitems, woot
@@ -61,8 +64,11 @@ def score(jsonfile, userfile=None):
                 continue
             else:
                 try:
-                    users[bet["signature"]]["bits"] += calculate_bits(result, prev_bet, bet["credence"])
-                    users[bet["signature"]]["last-update"] = int(time.time())
+                    if bet["timestamp"] > bet["signature"]:
+                        users[bet["signature"]]["bits"] += calculate_bits(result, prev_bet, bet["credence"])
+                        users[bet["signature"]]["last-update"] = int(time.time())
+                    else:
+                        continue
                 except KeyError:
                     users[bet["signature"]] = {"bits":calculate_bits(result, prev_bet, bet["credence"]),
                                                 "last-update":int(time.time())}
@@ -70,13 +76,37 @@ def score(jsonfile, userfile=None):
                 prev_bet = bet["credence"]
 #        scores = {}"""
 
-score("mispredictiones.txt")
-"""
-    for time, current_bet, user in Predictions:
-        #can implement time cutoffs if needed
-        if previous_bet == NaN:
-            previous_bet = current_bet
-            continue        #shall make it impossible to set a user as house, or repeat usernames.
-        scores[user] = scores.get(user, 0) + calculate_bits(result,previous_bet,current_bet)"""
+    file = open(userfile,'w')
+    try:
+        json.dump(users,file, sort_keys=True,indent=4 * ' ')
+    except TypeError:
+        json.dump(users,file, sort_keys=True,indent=4)
+    file.close
+    
+def add_prediction(jsonfile,id,statement,housebet=50,*args):
+    try:
+        file = open(jsonfile,'r+')
+        jsondata = json.loads(file.read()) #perhaps I can add an array of ID values to my json file to make parses like this faster.
+        for prediction in jsondata:
+            #assert prediction["id"] != id
+            if prediction["id"] == id:
+                print "%s prediction already exists" % id
+                return
+    except (IOError,ValueError):
+        file = open(jsonfile,'w')
+        jsondata = []
+    if housebet >= 100 or housebet <= 0:
+        raise ValueError
+    import time
+    now = int(time.time())
+    jsondata.append({"id":id, "statement":statement,
+        "history":[{"timestamp":now,"credence":housebet,"signature":"House"}],
+        "settled":False,"result":None,"tags":list(args)})
+    try:
+        json.dump(jsondata,file,indent=4 * ' ')
+    except TypeError:
+        json.dump(jsondata,file,indent=4)
+    file.close()
 
-# json.dump(~~variable~~, prediction_file)
+add_prediction("testadd.json","Magic","will this work?",2,'example','test')
+#score("mispredictiones.json")
