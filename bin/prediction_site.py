@@ -21,8 +21,13 @@ class index:
         if None in form:
             raise ValueError
         else:
-            pRun.add_prediction("predictions.json",form.predictionid,form.statement,float(form.housebet))
-            return "Well, we added the prediction but we couldn't actually add your bet yet. Sorry hun :("
+            try:
+                pRun.add_bet("predictions.json",form.username,form.predictionid,float(form.credence))
+                return "yay!"
+            except KeyError:
+                pRun.add_prediction("predictions.json",form.predictionid,form.statement,50)
+                pRun.add_bet("predictions.json",form.username,form.predictionid,float(form.credence))
+                return "Sorry"
 
 if __name__ == "__main__":
     app.run()

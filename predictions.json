@@ -1,0 +1,51 @@
+[
+    {
+        "tags": [
+            "paradox", 
+            "example"
+        ], 
+        "result": null, 
+        "statement": "Sample Prediction: This prediction is false.", 
+        "settled": false, 
+        "id": "example", 
+        "history": [
+            {
+                "timestamp": 1420086220, 
+                "credence": 50, 
+                "signature": "House"
+            }
+        ]
+    }, 
+    {
+        "result": null, 
+        "settled": false, 
+        "id": "testitnow", 
+        "statement": "This will work", 
+        "history": [
+            {
+                "timestamp": 1420086821, 
+                "credence": 50, 
+                "signature": "House"
+            }, 
+            {
+                "timestamp": 1420086889, 
+                "credence": 25.0, 
+                "signature": "Testy"
+            }, 
+            {
+                "timestamp": 1420087580, 
+                "credence": 86.0, 
+                "signature": "Testy"
+            }, 
+            {
+                "timestamp": 1420087593, 
+                "credence": 80.7, 
+                "signature": "Testy"
+            }, 
+            {
+                "timestamp": 1420087609, 
+                "credence": 80.7, 
+                "signature": "ALimon"
+            }
+        ]
+    }]

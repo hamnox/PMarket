@@ -88,7 +88,7 @@ class DuplicationError(KeyError):
 
 def add_prediction(jsonfile,id,statement,housebet=50,*args):
     try:
-        file = open(jsonfile,'r+')
+        myfile = open(jsonfile,'r')
         jsondata = json.loads(file.read()) #perhaps I can add an array of ID values to my json file to make parses like this faster.
         for prediction in jsondata:
             #assert prediction["id"] != id
@@ -102,18 +102,47 @@ def add_prediction(jsonfile,id,statement,housebet=50,*args):
         raise ValueError
     import time
     now = int(time.time())
-    bet = {"id":id, "statement":statement,
+    prediction = {"id":id, "statement":statement,
         "history":[{"timestamp":now,"credence":housebet,"signature":"House"}],
         "settled":False,"result":None}
     if args:
-        bet["tags"] = list(args)
+        prediction["tags"] = list(args)
+    jsondata.append(prediction)
 
-    jsondata.append(bet)
+    myfile.close()
+    myfile = open(jsonfile,'w')    
+    try:
+        json.dump(jsondata,myfile,indent=4 * ' ')
+    except TypeError:
+        json.dump(jsondata,myfile,indent=4)
+    myfile.close()
+
+
+def add_bet(jsonfile,user,id,bet):
+    file = open(jsonfile,'r+')
+    jsondata = json.loads(file.read()) #perhaps I can add an array of ID values to my json file to make parses like this faster.    
+    foundpred = None # you know what I need is to make the whole jsonfile a dict instead of an array, 
+        #then write a function to extract and write fromthe jsonfile.
+    for count,prediction in enumerate(jsondata):
+        if prediction["id"] == id:
+            foundpred = count
+            break
+    if foundpred == None:
+        raise KeyError("Eeek! That prediction id does not appear to exist!")
+    if bet >= 100 or bet <= 0:
+        raise ValueError
+    import time
+    now = int(time.time())
+    jsondata[foundpred]["history"].append({"timestamp":now,"credence":bet,"signature":user})
+    #error may happen here.
+    file.close()
+    file = open(jsonfile,'w')
     try:
         json.dump(jsondata,file,indent=4 * ' ')
     except TypeError:
         json.dump(jsondata,file,indent=4)
     file.close()
-
+    return
+    
 # add_prediction("testadd.json","Magic","will this work?",2,'example','test')
 #score("mispredictiones.json")
