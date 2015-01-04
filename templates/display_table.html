@@ -1,0 +1,10 @@
+$def with (json)
+
+<table style="width:100%">
+
+$for row in json:
+  <tr>
+    $for key, value in row.items()
+    <td>$(key): $(value)</td>
+  </tr>
+</table>

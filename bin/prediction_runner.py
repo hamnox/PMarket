@@ -24,8 +24,7 @@ def score(jsonfile, userfile="userscores.json"):
      #       raise IOError("SHTOP IT")
     except IOError:
         file = open(jsonfile,'w')
-        file.write("""[{
-            "id":"example",
+        file.write(""" "example_prediction":{
             "statement": "Sample Prediction: This prediction is false.",
             "history":
                 [{"timestamp":%d, "credence":50, "signature":"House"}],
@@ -33,7 +32,7 @@ def score(jsonfile, userfile="userscores.json"):
             "result":null,
             "tags":[
                 "paradox", "example"]
-            }]""" % (now))
+            }}""" % (now))
         file.close()
         file = open(jsonfile,'r')
     finally:
@@ -52,7 +51,7 @@ def score(jsonfile, userfile="userscores.json"):
     #load the subitems, woot
     # import pdb; pdb.set_trace()
 
-    for prediction in jsondata:
+    for id, prediction in jsondata.items():
         if prediction["settled"] and isinstance(prediction["result"],bool):
             result = prediction["result"]
         else:
@@ -89,58 +88,46 @@ class DuplicationError(KeyError):
 def add_prediction(jsonfile,id,statement,housebet=50,*args):
     try:
         myfile = open(jsonfile,'r')
-        jsondata = json.loads(file.read()) #perhaps I can add an array of ID values to my json file to make parses like this faster.
-        for prediction in jsondata:
-            #assert prediction["id"] != id
-            if prediction["id"] == id:
-                raise DuplicationError("A prediction already exists under this ID!")
-                return
+        jsondata = json.loads(myfile.read()) #perhaps I can add an array of ID values to my json file to make parses like this faster.
     except (IOError,ValueError):
-        file = open(jsonfile,'w')
-        jsondata = []
+        myfile = open(jsonfile,'w')
+        jsondata = {}
+    if id in jsondata.keys():
+        raise DuplicationError("A prediction already exists under this ID!")
     if housebet >= 100 or housebet <= 0:
-        raise ValueError
+        raise ValueError("All bets must be greater than 0 and less than 100.")
     import time
     now = int(time.time())
-    prediction = {"id":id, "statement":statement,
+    jsondata[id] = {"statement":statement,
         "history":[{"timestamp":now,"credence":housebet,"signature":"House"}],
         "settled":False,"result":None}
     if args:
-        prediction["tags"] = list(args)
-    jsondata.append(prediction)
-
+        jsondata[id]["tags"] = list(args)
     myfile.close()
-    myfile = open(jsonfile,'w')    
-    try:
-        json.dump(jsondata,myfile,indent=4 * ' ')
-    except TypeError:
-        json.dump(jsondata,myfile,indent=4)
+    myfile = open(jsonfile,'w')
+    myfile.write(json.dumps(jsondata))
     myfile.close()
 
 
 def add_bet(jsonfile,user,id,bet):
-    file = open(jsonfile,'r+')
-    jsondata = json.loads(file.read()) #perhaps I can add an array of ID values to my json file to make parses like this faster.    
-    foundpred = None # you know what I need is to make the whole jsonfile a dict instead of an array, 
+    try:
+        file = open(jsonfile,'r+')
+        jsondata = json.loads(file.read())
+    except IOError:
+        raise KeyError("Need to make a new file, this one ain't working.")
+        jsondata = {}
         #then write a function to extract and write fromthe jsonfile.
-    for count,prediction in enumerate(jsondata):
-        if prediction["id"] == id:
-            foundpred = count
-            break
-    if foundpred == None:
+    if id not in jsondata.keys():
         raise KeyError("Eeek! That prediction id does not appear to exist!")
     if bet >= 100 or bet <= 0:
-        raise ValueError
+        raise ValueError("All bets must be greater than 0 and less than 100.")
     import time
     now = int(time.time())
-    jsondata[foundpred]["history"].append({"timestamp":now,"credence":bet,"signature":user})
+    jsondata[id]["history"].append({"timestamp":now,"credence":bet,"signature":user})
     #error may happen here.
     file.close()
     file = open(jsonfile,'w')
-    try:
-        json.dump(jsondata,file,indent=4 * ' ')
-    except TypeError:
-        json.dump(jsondata,file,indent=4)
+    json.dump(jsondata,file)
     file.close()
     return
     
