@@ -107,6 +107,7 @@ def add_prediction(jsonfile,id,statement,housebet=50,*args):
     myfile = open(jsonfile,'w')
     myfile.write(json.dumps(jsondata))
     myfile.close()
+    return
 
 
 def add_bet(jsonfile,user,id,bet):
@@ -129,7 +130,7 @@ def add_bet(jsonfile,user,id,bet):
     file = open(jsonfile,'w')
     json.dump(jsondata,file)
     file.close()
-    return
+    return jsondata[id]
     
 # add_prediction("testadd.json","Magic","will this work?",2,'example','test')
 #score("mispredictiones.json")

@@ -1,4 +1,6 @@
 import web
+import time
+import __builtin__
 import prediction_runner as pRun
 
 urls = (
@@ -6,8 +8,7 @@ urls = (
 ) #list of urls and what classes they match. when http tries (it will try these first), lpthw.web will load that class to handle the request.
 
 app = web.application(urls, globals()) #deleted this but it didn't do anthing WHAT O_O
-
-render = web.template.render('templates/',base="layout") #Get a template, slob
+render = web.template.render('templates/',base="layout", globals={'time':time, 'str':__builtin__.str}) #Get a template, slob
 
 class index:
     def GET(self):
@@ -23,15 +24,13 @@ class index:
             raise ValueError
         else:
             try:
-                pRun.add_bet("predictions.json",form.username,form.predictionid,float(form.credence))
-                return "It went through just fine dearie"
+                jsonreturn = pRun.add_bet("predictions.json",form.username,form.predictionid,float(form.credence))
+                return render.display_table(json=jsonreturn)
             except KeyError:
                 #if only I knew a way to make it put a javascript box up here
                 pRun.add_prediction("predictions.json",form.predictionid,form.statement,50)
-                pRun.add_bet("predictions.json",form.username,form.predictionid,float(form.credence))
-                return render.message(msg="Couldn't find that ID, had to make a new prediction")
-         #   import json
-          #  jsonfile = open("predictions.json",'r')
-           # return render.display_table(json.loads(jsonfile.read()))
+                jsonreturn = pRun.add_bet("predictions.json",form.username,form.predictionid,float(form.credence))
+                return render.display_table(json=jsonreturn)
+
 if __name__ == "__main__":
     app.run()

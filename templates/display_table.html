@@ -1,10 +1,17 @@
 $def with (json)
 
-<table style="width:100%">
-
-$for row in json:
-  <tr>
-    $for key, value in row.items()
-    <td>$(key): $(value)</td>
-  </tr>
+$for key, value in json.items()
+    $code:
+        key = str(key)
+        value2 = str(value)
+    $if key == "history":
+        <br /><table style="width:100%">
+        <tr><td>User</td><td>Bet</td><td>Time</td></tr>
+        $for betdict in value:
+            <tr><td>$betdict["signature"]</td>
+            <td>$betdict["credence"]</td>
+            <td>$(time.strftime("%m/%d/%y %H:%M",time.gmtime(int(betdict["timestamp"]))))</td>
+        </tr>
+    $else:
+        $(key): $(value2) <br />
 </table>
