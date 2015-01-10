@@ -45,7 +45,7 @@ def score(jsonfile, userfile="userscores.json"):
         users = json.loads(file.read())
         file.close()
     except (IOError, TypeError):
-        users = json.loads("""{"House":{}}""" % (now))
+        users = json.loads("""{"House":{}}""")
     # print predictions,"\n\n", users, "\n\n"
 
     #load the subitems, woot
@@ -63,24 +63,27 @@ def score(jsonfile, userfile="userscores.json"):
                 continue
             else:
                 try:
-                    if bet["timestamp"] > bet["signature"]:
+                    print id, "bet:", bet["timestamp"]
+                    print "last user bet:",users[bet["signature"]]["last-update"]
+                    if bet["timestamp"] > users[bet["signature"]]["last-update"]:
                         users[bet["signature"]]["bits"] += calculate_bits(result, prev_bet, bet["credence"])
                         users[bet["signature"]]["last-update"] = int(time.time())
+                        print "prev exist user", bet["signature"]
                     else:
+                        print "already updated"
                         continue
                 except KeyError:
                     users[bet["signature"]] = {"bits":calculate_bits(result, prev_bet, bet["credence"]),
                                                 "last-update":int(time.time())}
+                    print "new user", bet["signature"]
                 #print bet["signature"], ":", str(bet["credence"]) + "%", "+" + str(calculate_bits(result, prev_bet, bet["credence"]))
                 prev_bet = bet["credence"]
 #        scores = {}"""
 
     file = open(userfile,'w')
-    try:
-        json.dump(users,file, sort_keys=True,indent=4 * ' ')
-    except TypeError:
-        json.dump(users,file, sort_keys=True,indent=4)
+    json.dump(users,file, sort_keys=True)
     file.close
+    return users
 
 class DuplicationError(KeyError):
     pass
@@ -128,7 +131,7 @@ def add_bet(jsonfile,user,id,bet):
     #error may happen here.
     file.close()
     file = open(jsonfile,'w')
-    json.dump(jsondata,file)
+    json.dump(jsondata,file, sort_keys=True)
     file.close()
     return jsondata[id]
     

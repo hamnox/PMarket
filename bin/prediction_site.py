@@ -4,7 +4,7 @@ import __builtin__
 import prediction_runner as pRun
 
 urls = (
-  '/', 'index'
+  '/', 'index', "/scores", "scores"
 ) #list of urls and what classes they match. when http tries (it will try these first), lpthw.web will load that class to handle the request.
 
 app = web.application(urls, globals()) #deleted this but it didn't do anthing WHAT O_O
@@ -32,5 +32,9 @@ class index:
                 jsonreturn = pRun.add_bet("predictions.json",form.username,form.predictionid,float(form.credence))
                 return render.display_table(json=jsonreturn)
 
+class scores:
+    def GET(self):
+        userreturn = pRun.score("predictions.json", "testusers.json")
+        return render.display_table(json=userreturn)
 if __name__ == "__main__":
     app.run()
