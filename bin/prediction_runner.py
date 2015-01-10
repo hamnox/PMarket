@@ -17,7 +17,7 @@ def calculate_bits(result, market, update):
 
 def score(jsonfile, userfile="userscores.json"):
     import time
-    now = int(time.time()) # i think this is utc, it might break cross-time zone if not.
+    now = time.time() # i think this is utc, it might break cross-time zone if not.
     try:
         file = open(jsonfile,'r')
     #    if prediction_file.read() == "":
@@ -58,24 +58,19 @@ def score(jsonfile, userfile="userscores.json"):
             continue
         prev_bet = None
         for bet in prediction['history']:
+            print bet,"\n"
             if bet["signature"] == "House":
                 prev_bet = bet["credence"]
                 continue
             else:
+                bet["bits"] = calculate_bits(result, prev_bet, bet["credence"])
                 try:
-                    print id, "bet:", bet["timestamp"]
-                    print "last user bet:",users[bet["signature"]]["last-update"]
                     if bet["timestamp"] > users[bet["signature"]]["last-update"]:
-                        users[bet["signature"]]["bits"] += calculate_bits(result, prev_bet, bet["credence"])
-                        users[bet["signature"]]["last-update"] = int(time.time())
-                        print "prev exist user", bet["signature"]
-                    else:
-                        print "already updated"
-                        continue
+                        users[bet["signature"]]["bits"] += bet["bits"]
+                        users[bet["signature"]]["last-update"] = time.time()
                 except KeyError:
-                    users[bet["signature"]] = {"bits":calculate_bits(result, prev_bet, bet["credence"]),
-                                                "last-update":int(time.time())}
-                    print "new user", bet["signature"]
+                    users[bet["signature"]] = {"bits":bet["bits"],
+                                                "last-update":time.time()}
                 #print bet["signature"], ":", str(bet["credence"]) + "%", "+" + str(calculate_bits(result, prev_bet, bet["credence"]))
                 prev_bet = bet["credence"]
 #        scores = {}"""
@@ -83,6 +78,10 @@ def score(jsonfile, userfile="userscores.json"):
     file = open(userfile,'w')
     json.dump(users,file, sort_keys=True)
     file.close
+
+    jfile = open(jsonfile,'w')
+    json.dump(jsondata,jfile, sort_keys=True)
+    jfile.close
     return users
 
 class DuplicationError(KeyError):
@@ -100,7 +99,7 @@ def add_prediction(jsonfile,id,statement,housebet=50,*args):
     if housebet >= 100 or housebet <= 0:
         raise ValueError("All bets must be greater than 0 and less than 100.")
     import time
-    now = int(time.time())
+    now = time.time()
     jsondata[id] = {"statement":statement,
         "history":[{"timestamp":now,"credence":housebet,"signature":"House"}],
         "settled":False,"result":None}
@@ -108,7 +107,7 @@ def add_prediction(jsonfile,id,statement,housebet=50,*args):
         jsondata[id]["tags"] = list(args)
     myfile.close()
     myfile = open(jsonfile,'w')
-    myfile.write(json.dumps(jsondata))
+    myfile.write(json.dumps(jsondata, sort_keys=True))
     myfile.close()
     return
 
@@ -118,15 +117,16 @@ def add_bet(jsonfile,user,id,bet):
         file = open(jsonfile,'r+')
         jsondata = json.loads(file.read())
     except IOError:
-        raise KeyError("Need to make a new file, this one ain't working.")
         jsondata = {}
         #then write a function to extract and write fromthe jsonfile.
     if id not in jsondata.keys():
+        print id
+        print jsondata.keys()
         raise KeyError("Eeek! That prediction id does not appear to exist!")
     if bet >= 100 or bet <= 0:
         raise ValueError("All bets must be greater than 0 and less than 100.")
     import time
-    now = int(time.time())
+    now = time.time()
     jsondata[id]["history"].append({"timestamp":now,"credence":bet,"signature":user})
     #error may happen here.
     file.close()

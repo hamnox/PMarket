@@ -23,6 +23,7 @@ class index:
         if None in form:
             raise ValueError
         else:
+            pRun.score("predictions.json", "testusers.json")
             try:
                 jsonreturn = pRun.add_bet("predictions.json",form.username,form.predictionid,float(form.credence))
                 return render.display_table(json=jsonreturn)
@@ -30,6 +31,7 @@ class index:
                 #if only I knew a way to make it put a javascript box up here
                 pRun.add_prediction("predictions.json",form.predictionid,form.statement,50)
                 jsonreturn = pRun.add_bet("predictions.json",form.username,form.predictionid,float(form.credence))
+                #as of now, it won't show the score of the last user. I need to make a separate grab jsondata function.
                 return render.display_table(json=jsonreturn)
 
 class scores:

@@ -6,11 +6,17 @@ $for key, value in json.items()
         value2 = str(value)
     $if key == "history":
         <br /><table style="width:100%">
-        <tr><td>User</td><td>Bet</td><td>Time</td></tr>
+            <tr><td>User</td><td>Bet</td><td>Time</td>
+        $if json["settled"] == True:
+            <td>Bits Assigned</tr>
         $for betdict in value:
             <tr><td>$betdict["signature"]</td>
             <td>$betdict["credence"]</td>
             <td>$(time.strftime("%m/%d/%y %H:%M",time.gmtime(int(betdict["timestamp"]))))</td>
+            <td>
+            $if "bits" in betdict.keys():
+                $betdict["bits"]
+            </td>
         </tr>
     $else:
         $(key): $(value2) <br />
