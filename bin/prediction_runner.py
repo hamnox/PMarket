@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import math
 import json
+import time
 # https://docs.python.org/2/howto/webservers.html
 # using v2.7.5
 
@@ -13,10 +14,15 @@ def calculate_bits(result, market, update):
         bits = 100 * math.log((100-update)/(100-market),2) #will error if market is 100 do not let it be that
     return bits
 
+def get_prediction_info(jsonfile, prediction_id):
+    with open(jsonfile, 'r+') as file:
+        jsondata = json.loads(file.read())
+
+        return jsondata[prediction_id]
+
 #open the json file
 
 def score(jsonfile, userfile="userscores.json"):
-    import time
     now = time.time() # i think this is utc, it might break cross-time zone if not.
     try:
         file = open(jsonfile,'r')
@@ -84,32 +90,30 @@ def score(jsonfile, userfile="userscores.json"):
     jfile.close
     return users
 
-class DuplicationError(KeyError):
-    pass
 
 def add_prediction(jsonfile,id,statement,housebet=50,*args):
     try:
-        myfile = open(jsonfile,'r')
-        jsondata = json.loads(myfile.read()) #perhaps I can add an array of ID values to my json file to make parses like this faster.
+        with open(jsonfile,'r') as myfile:
+            jsondata = json.loads(myfile.read()) 
     except (IOError,ValueError):
-        myfile = open(jsonfile,'w')
         jsondata = {}
-    if id in jsondata.keys():
-        raise DuplicationError("A prediction already exists under this ID!")
+
     if housebet >= 100 or housebet <= 0:
         raise ValueError("All bets must be greater than 0 and less than 100.")
-    import time
-    now = time.time()
-    jsondata[id] = {"statement":statement,
-        "history":[{"timestamp":now,"credence":housebet,"signature":"House"}],
-        "settled":False,"result":None}
-    if args:
-        jsondata[id]["tags"] = list(args)
-    myfile.close()
-    myfile = open(jsonfile,'w')
-    myfile.write(json.dumps(jsondata, sort_keys=True))
-    myfile.close()
-    return
+
+    if id in jsondata.keys():
+        if statement:
+            jsondata[id]["statement"] = statement
+    else:
+        now = time.time()
+        jsondata[id] = {"statement":statement,
+            "history":[{"timestamp":now,"credence":housebet,"signature":"House"}],
+            "settled":False,"result":None}
+        if args:
+            jsondata[id]["tags"] = list(args)
+
+    with open(jsonfile,'w') as writer:
+        writer.write(json.dumps(jsondata, sort_keys=True))
 
 
 def add_bet(jsonfile,user,id,bet):

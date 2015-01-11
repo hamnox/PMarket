@@ -23,20 +23,16 @@ class index:
         if None in form:
             raise ValueError
         else:
+            pRun.add_prediction("predictions.json",form.predictionid,form.statement,50)
+            pRun.add_bet("predictions.json",form.username,form.predictionid,float(form.credence))
             pRun.score("predictions.json", "testusers.json")
-            try:
-                jsonreturn = pRun.add_bet("predictions.json",form.username,form.predictionid,float(form.credence))
-                return render.display_table(json=jsonreturn)
-            except KeyError:
-                #if only I knew a way to make it put a javascript box up here
-                pRun.add_prediction("predictions.json",form.predictionid,form.statement,50)
-                jsonreturn = pRun.add_bet("predictions.json",form.username,form.predictionid,float(form.credence))
-                #as of now, it won't show the score of the last user. I need to make a separate grab jsondata function.
-                return render.display_table(json=jsonreturn)
+            info = pRun.get_prediction_info("predictions.json", form.predictionid)
+            return render.display_table(json=info)
 
 class scores:
     def GET(self):
         userreturn = pRun.score("predictions.json", "testusers.json")
         return render.display_table(json=userreturn)
+
 if __name__ == "__main__":
     app.run()
