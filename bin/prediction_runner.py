@@ -56,7 +56,6 @@ def score(jsonfile, userfile="userscores.json"):
             continue
         prev_bet = None
         for bet in prediction['history']:
-            print bet,"\n"
             if bet["signature"] == "House":
                 prev_bet = bet["credence"]
                 continue
@@ -69,7 +68,6 @@ def score(jsonfile, userfile="userscores.json"):
                 except KeyError:
                     users[bet["signature"]] = {"bits":bet["bits"],
                                                 "last-update":time.time()}
-                #print bet["signature"], ":", str(bet["credence"]) + "%", "+" + str(calculate_bits(result, prev_bet, bet["credence"]))
                 prev_bet = bet["credence"]
 #        scores = {}"""
 
