@@ -46,16 +46,8 @@ def score(jsonfile, userfile="userscores.json"):
         file.close()
         
         #second verse, same as the first!
-    try:
-        file = open(userfile,'r')
-        users = json.loads(file.read())
-        file.close()
-    except (IOError, TypeError):
-        users = json.loads("""{"House":{}}""")
-    # print predictions,"\n\n", users, "\n\n"
-
-    #load the subitems, woot
-    # import pdb; pdb.set_trace()
+    with open(userfile,'r') as myfile:
+        users = json.loads(myfile.read())
 
     for id, prediction in jsondata.items():
         if prediction["settled"] and isinstance(prediction["result"],bool):
@@ -81,17 +73,15 @@ def score(jsonfile, userfile="userscores.json"):
                 prev_bet = bet["credence"]
 #        scores = {}"""
 
-    file = open(userfile,'w')
-    json.dump(users,file, sort_keys=True)
-    file.close
+    with open(jsonfile,'w') as writer:
+        writer.write(json.dumps(users, sort_keys=True))
 
-    jfile = open(jsonfile,'w')
-    json.dump(jsondata,jfile, sort_keys=True)
-    jfile.close
+    with open(jsonfile,'w') as writer:
+        writer.write(json.dumps(jsondata, sort_keys=True))
     return users
 
 
-def add_prediction(jsonfile,id,statement,housebet=50,*args):
+def add_prediction(jsonfile,id,statement,housebet=50,tags=""):
     try:
         with open(jsonfile,'r') as myfile:
             jsondata = json.loads(myfile.read()) 
@@ -109,35 +99,30 @@ def add_prediction(jsonfile,id,statement,housebet=50,*args):
         jsondata[id] = {"statement":statement,
             "history":[{"timestamp":now,"credence":housebet,"signature":"House"}],
             "settled":False,"result":None}
-        if args:
-            jsondata[id]["tags"] = list(args)
-
+        if tags:
+            if "tags" in jsondata[id].keys():
+                jsondata[id]["tags"].extend([tag.strip() for tag in tags.split(",")])
+            else:
+                jsondata[id]["tags"] = [tag.strip() for tag in tags.split(",")]
     with open(jsonfile,'w') as writer:
         writer.write(json.dumps(jsondata, sort_keys=True))
 
 
-def add_bet(jsonfile,user,id,bet):
+def add_bet(jsonfile,user,id,bet,tags=""):
     try:
-        file = open(jsonfile,'r+')
-        jsondata = json.loads(file.read())
+        with open(jsonfile,'r+') as myfile:
+            jsondata = json.loads(myfile.read())
     except IOError:
         jsondata = {}
         #then write a function to extract and write fromthe jsonfile.
-    if id not in jsondata.keys():
-        print id
-        print jsondata.keys()
-        raise KeyError("Eeek! That prediction id does not appear to exist!")
     if bet >= 100 or bet <= 0:
         raise ValueError("All bets must be greater than 0 and less than 100.")
-    import time
     now = time.time()
+    if tags:
+        jsondata[id]["tags"] = [tag.strip() for tag in tags.split(",")]
+
     jsondata[id]["history"].append({"timestamp":now,"credence":bet,"signature":user})
-    #error may happen here.
-    file.close()
-    file = open(jsonfile,'w')
-    json.dump(jsondata,file, sort_keys=True)
-    file.close()
+
+    with open(jsonfile,'w') as writer:
+        writer.write(json.dumps(jsondata, sort_keys=True))
     return jsondata[id]
-    
-# add_prediction("testadd.json","Magic","will this work?",2,'example','test')
-#score("mispredictiones.json")

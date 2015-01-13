@@ -1,13 +1,14 @@
 $def with (username)
 
- <h1>Make a Prediction!</h1>
+ <h1>Make a Prediction</h1>
  <div style="margin-left:auto;margin-right:auto;"><form action = "/" method = "POST">
     <table>
     <tr><td>username:</td><td><input type="text" name="username" value=$username></td></tr>
-<!--       <tr><td>new user?</td><td><input type="checkbox" name="usercheck" value="true"></td></tr> -->
-    <tr><td>prediction:</td><td><input type="text" name="statement"></td></tr>
-    <tr><td>confidence:</td><td><input type="number" name="credence" min="0" max="100" step="0.1" value="50"></td></tr>
     <tr><td>prediction ID:</td><td><input type="text" name="predictionid"></td></tr>
+    <tr><td>prediction:</td><td><input type="text" name="statement"></td></tr>
+<!--       <tr><td>new user?</td><td><input type="checkbox" name="usercheck" value="true"></td></tr> -->
+    <tr><td>confidence:</td><td><input type="number" name="credence" min="0" max="100" step="0.1" value="50"></td></tr>
+    <tr><td>tags (,):</td><td><input type="text" name="tags"></td></tr>
     <tr><td><input type="submit"></td></tr></table>   <!--add some :hover text to explain all this shite-->
 </form>
 </div>

@@ -3,7 +3,10 @@ $def with (json)
 $for key, value in json.items()
     $code:
         key = str(key)
-        value2 = str(value)
+        if key == "tags":
+            value2 = [str(x) for x in value]
+        else:
+            value2 = str(value)
     $if key == "history":
         <br /><table style="width:100%">
             <tr><td>User</td><td>Bet</td><td>Time</td>
