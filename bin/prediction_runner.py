@@ -17,7 +17,6 @@ def calculate_bits(result, market, update):
 def get_prediction_info(jsonfile, prediction_id):
     with open(jsonfile, 'r+') as file:
         jsondata = json.loads(file.read())
-
         return jsondata[prediction_id]
 
 #open the json file
@@ -25,12 +24,10 @@ def get_prediction_info(jsonfile, prediction_id):
 def score(jsonfile, userfile="userscores.json"):
     now = time.time() # i think this is utc, it might break cross-time zone if not.
     try:
-        file = open(jsonfile,'r')
-    #    if prediction_file.read() == "":
-     #       raise IOError("SHTOP IT")
+        with open(jsonfile,'r') as myfile:
+            jsondata = json.loads(myfile.read())
     except IOError:
-        file = open(jsonfile,'w')
-        file.write(""" "example_prediction":{
+       jsondata = json.loads(""" "example_prediction":{
             "statement": "Sample Prediction: This prediction is false.",
             "history":
                 [{"timestamp":%d, "credence":50, "signature":"House"}],
@@ -39,11 +36,6 @@ def score(jsonfile, userfile="userscores.json"):
             "tags":[
                 "paradox", "example"]
             }}""" % (now))
-        file.close()
-        file = open(jsonfile,'r')
-    finally:
-        jsondata = json.loads(file.read())
-        file.close()
         
         #second verse, same as the first!
     with open(userfile,'r') as myfile:
@@ -69,7 +61,6 @@ def score(jsonfile, userfile="userscores.json"):
                     users[bet["signature"]] = {"bits":bet["bits"],
                                                 "last-update":time.time()}
                 prev_bet = bet["credence"]
-#        scores = {}"""
 
     with open(jsonfile,'w') as writer:
         writer.write(json.dumps(users, sort_keys=True))
@@ -77,7 +68,8 @@ def score(jsonfile, userfile="userscores.json"):
     with open(jsonfile,'w') as writer:
         writer.write(json.dumps(jsondata, sort_keys=True))
     return users
-
+#note: changing a result to None does not retract points made.
+#actually, nothing retracts points made.
 
 def add_prediction(jsonfile,id,statement,housebet=50,tags=""):
     try:
@@ -124,3 +116,21 @@ def add_bet(jsonfile,user,id,bet,tags=""):
     with open(jsonfile,'w') as writer:
         writer.write(json.dumps(jsondata, sort_keys=True))
     return jsondata[id]
+
+def settle_bet(jsonfile,id,truthvalue=None):
+    with open(jsonfile,'r+') as myfile:
+        jsondata = json.loads(myfile.read())
+    jsondata[id]["settled"] = True
+    if truthvalue == "None":
+        jsondata[id]["result"] = None
+    elif truthvalue == "True":
+        jsondata[id]["result"] = True
+    elif truthvalue == "False":
+        jsondata[id]["result"] = False 
+    else:
+        raise ValueError
+    with open(jsonfile,'w') as writer:
+        writer.write(json.dumps(jsondata, sort_keys=True))
+    score("predictions.json", "testusers.json")
+    return jsondata[id]
+

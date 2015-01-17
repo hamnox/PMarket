@@ -1,0 +1,38 @@
+$def with (massjson):
+
+<table style="width:100%">
+    <tr><td>Prediction ID</td>
+        <td>Statement</td>
+        <td>Result</td>
+        <td>History</td>
+        <td>Tags<td> <!--gotta add some click function in this col, plus add/delete functionality-->
+        </tr>
+$for key, dictPredict in massjson.items():
+    <tr><td>$str(key)</td>
+        <td>$dictPredict["statement"]</td>
+        <td>$if dictPredict["settled"] == True:
+                $dictPredict["result"]
+            $else:
+                settled
+            </td>
+        <td>
+        <td><table style="width:100%">
+            <tr><td>User</td><td>Bet</td><td>Time</td>
+            $if dictPredict["settled"] == True:
+                <td>Bits Assigned</tr>
+        $for betdict in dictPredict["History"]:
+            <tr><td>$betdict["signature"]</td>
+                <td>$betdict["credence"]</td>
+                <td>$(time.strftime("%m/%d/%y %H:%M",time.gmtime(int(betdict["timestamp"]))))</td>
+                <td>
+                    $if "bits" in betdict.keys():
+                        $betdict["bits"]
+                    </td>
+                </tr></table>
+            </td>
+        <td>
+            $for tag in dictPredict["tags"]
+                $(str(x)), </td>
+        </tr>
+</table>
+

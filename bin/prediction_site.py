@@ -4,7 +4,7 @@ import __builtin__
 import prediction_runner as pRun
 
 urls = (
-  '/', 'index', '/scores', "scores", '/lookup', 'lookup'
+  '/', 'index', '/scores', "scores", '/lookup', 'lookup', "/settle", "settle"
 ) #list of urls and what classes they match. when http tries (it will try these first), lpthw.web will load that class to handle the request.
 
 app = web.application(urls, globals()) #deleted this but it didn't do anthing WHAT O_O
@@ -24,12 +24,12 @@ class index:
             pRun.add_bet("predictions.json",form.username,form.predictionid,float(form.credence))
             pRun.score("predictions.json", "testusers.json")
             info = pRun.get_prediction_info("predictions.json", form.predictionid)
-            return render.display_table(json=info)
+            return render.display_table(json=info,predictionid=form.predictionid)
 
 class scores:
     def GET(self):
         userreturn = pRun.score("predictions.json", "testusers.json")
-        return render.display_table(json=userreturn)
+        return render.display_table(json=userreturn,predictionid=False) #woops predictionid is invalid here.
 
 class lookup:
     def GET(self):
@@ -38,7 +38,13 @@ class lookup:
     def POST(self):
         form = web.input(predictionid="")
         info = pRun.get_prediction_info("predictions.json", form.predictionid)
-        return render.display_table(json=info)
+        return render.display_table(json=info,predictionid=str(form.predictionid))
+    
+class settle:
+    def POST(self):
+        form = web.input(predictionid="", truthvalue=None)
+        info = pRun.settle_bet("predictions.json",form.predictionid, form.truthvalue)
+        return render.display_table(json=info,predictionid=form.predictionid)
     
 if __name__ == "__main__":
     app.run()

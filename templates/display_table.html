@@ -1,4 +1,13 @@
-$def with (json)
+$def with (json, predictionid)
+
+$if predictionid != False:
+    <form action="/settle" method="POST">
+        Settle the bet:<br />
+        <input type="hidden" name="predictionid" value="$predictionid">
+        <input type="submit" name="truthvalue" value="True">
+        <input type="submit" name="truthvalue" value="False">
+        <input type="submit" name="truthvalue" value="None">
+    </form>
 
 $for key, value in json.items()
     $code:
@@ -20,7 +29,9 @@ $for key, value in json.items()
             $if "bits" in betdict.keys():
                 $betdict["bits"]
             </td>
-        </tr>
+            </tr>
     $else:
         $(key): $(value2) <br />
-</table>
+        </table>
+<br /></ br>
+
