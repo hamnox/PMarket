@@ -19,7 +19,9 @@ def get_prediction_info(jsonfile, prediction_id):
         jsondata = json.loads(file.read())
         return jsondata[prediction_id]
 
-#open the json file
+def getJsonData(filename):
+    with open(filename,'r') as myfile:
+        return json.loads(myfile.read())
 
 def score(jsonfile, userfile="userscores.json"):
     now = time.time() # i think this is utc, it might break cross-time zone if not.

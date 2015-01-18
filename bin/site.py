@@ -1,10 +1,10 @@
 import web
 import time
 import __builtin__
-import prediction_runner as pRun
+import runner as pRun
 
 urls = (
-  '/', 'index', '/scores', "scores", '/lookup', 'lookup', "/settle", "settle"
+  '/', 'index', '/scores', "scores", '/lookup', 'lookup', "/settle", "settle", '/mass', 'masslookup'
 ) #list of urls and what classes they match. when http tries (it will try these first), lpthw.web will load that class to handle the request.
 
 app = web.application(urls, globals()) #deleted this but it didn't do anthing WHAT O_O
@@ -39,7 +39,12 @@ class lookup:
         form = web.input(predictionid="")
         info = pRun.get_prediction_info("predictions.json", form.predictionid)
         return render.display_table(json=info,predictionid=str(form.predictionid))
-    
+
+class masslookup:
+    def GET(self):
+        json = pRun.getJsonData("predictions.json")
+        return render.mass_display(massjson = json)
+        
 class settle:
     def POST(self):
         form = web.input(predictionid="", truthvalue=None)
