@@ -1,14 +1,25 @@
-$def with (massjson)
+$def with (massjsonarray)
 
 <table>
-    <tr><td>Prediction ID</td>
-        <td>Statement</td>
-        <td>Result</td>
-        <td>History</td>
-        <td>Tags</td>
-    </tr>
-$for key, dictPredict in massjson.items():
-    <tr><td>$str(key)</td>
+    <form action="/mass" method="GET">
+        <tr><td>Prediction ID<br />
+                <button type="submit" name="sortkey" value="predictionid">Sort By</button>
+                </td>
+            <td>Statement<br />
+                <button type="submit" name="sortkey" value="statement">Sort By</button>
+                </td>
+            <td>Result<br />
+                <button type="submit" name="sortkey" value="result">Sort By</button>
+                </td>
+            <td>History<br />
+                <button type="submit" name="sortkey" value="timestamp">Sort By</button>
+                </td>
+            <td>Tags</td>
+        </tr>
+$for predictionset in massjsonarray:
+    <tr><td>$str(predictionset[0])</td>
+        $code:
+            dictPredict =  predictionset[1]
         <td>$dictPredict["statement"]</td>
         <td>
             $if dictPredict["settled"] == True:

@@ -23,6 +23,16 @@ def getJsonData(filename):
     with open(filename,'r') as myfile:
         return json.loads(myfile.read())
 
+def sortPredictions(jsonarray,subkey="timestamp"):
+    #TODO: by predictionid. jsonarray = [value["id"] = key for key, value in json].. no just make it accept iterables.
+    if subkey == "timestamp":
+        return sorted(jsonarray,key=lambda e: e[1]['history'][-1]["timestamp"], reverse=True)
+    elif subkey == "predictionid":
+        return sorted(jsonarray,key=lambda e: e[0], reverse=False)
+    else:
+        return sorted(jsonarray,key=lambda e: e[1][subkey], reverse=False)
+
+
 def score(jsonfile, userfile="userscores.json"):
     now = time.time() # i think this is utc, it might break cross-time zone if not.
     try:
@@ -40,8 +50,11 @@ def score(jsonfile, userfile="userscores.json"):
             }}""" % (now))
         
         #second verse, same as the first!
-    with open(userfile,'r') as myfile:
-        users = json.loads(myfile.read())
+    try:
+        with open(userfile,'r') as myfile:
+            users = json.loads(myfile.read())
+    except IOError:
+        users = json.loads('{"House":{}}')
 
     for id, prediction in jsondata.items():
         if prediction["settled"] and isinstance(prediction["result"],bool):

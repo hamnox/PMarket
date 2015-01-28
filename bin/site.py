@@ -42,8 +42,10 @@ class lookup:
 
 class masslookup:
     def GET(self):
-        json = pRun.getJsonData("predictions.json")
-        return render.mass_display(massjson = json)
+        form = web.input(sortkey="timestamp")
+        jsonarray = pRun.sortPredictions(
+                pRun.getJsonData("predictions.json").items(),form.sortkey)
+        return render.mass_display(massjsonarray = jsonarray)
         
 class settle:
     def POST(self):
