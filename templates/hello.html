@@ -1,0 +1,13 @@
+<!doctype html>
+<title>Hello from Flask</title>
+{% if name %}
+    <h1>Hello {{ name }}!</h1>
+{% else %}
+    <h1>Hello World!</h1>
+{% endif %}
+
+{# for more info on Jinja templates (which can do any text file, apparently,
+ not just HTML, visit jinja.pocoo.org/docs/dev/templates/ #}
+
+{# From flask, we get access to request, session, and g objects, as well as
+ the get_falshed_messages() function #}
