@@ -10,6 +10,20 @@ from flask import Flask
 
 app = Flask(__name__)
 
+@app.route('/createuser', methods=[GET])
+def createuser(
+
+
+
+
+
+
+
+
+
+
+
+
 # self-explanatory, it tunes the app to accept the '/' address
 # it looks like it just takes the next definitions to be the related function.
 @app.route('/')
