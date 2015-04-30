@@ -19,18 +19,33 @@ cur.execute("""
         datejoined timestamp NOT NULL
     )""")
 
+cur.execute(""" insert into users (username,
+    password, datejoined) values ('testuser',
+    'very secure hash', CURRENT_TIMESTAMP)""")
+
 cur.execute("""
     create table if not exists predictions (
         id SERIAL PRIMARY KEY,
         created_by integer NOT NULL references 
             users(id),
         statement char(200) NOT NULL, 
-        description text,
+        smalltext text,
         datecreated timestamp NOT NULL,
+        expectresolved timestamp,
         dateresolved timestamp,
         result boolean,
-        initial_bet numeric(5,3)
+        initial_bet numeric(5,3) DEFAULT 50
     )""")
+
+cur.execute("""insert into predictions (created_by,
+    datecreated, statement) values (1, CURRENT_TIMESTAMP,
+    'the rain in spain stays mainly in the plains'),
+    (1, CURRENT_TIMESTAMP,
+    'elementary, my dear watson'),
+    (1, CURRENT_TIMESTAMP, 'he''s a jolly good fellow')""")
+
+# need to find someway to autocreate
+# teh first bet, no?
 
 cur.execute("""
     create table if not exists bets (

@@ -1,4 +1,10 @@
 from flask import Flask
+import json
+import psycopg2
+
+with open("postgres_auth", 'r') as reader:
+    auth = json.load(reader)
+conn = psycopg2.connect(**auth)
 
 # using flask.pocoo.org/docs/0.10/quickstart
 # alright, first order of business:
@@ -10,10 +16,65 @@ from flask import Flask
 
 app = Flask(__name__)
 
-@app.route('/createuser', methods=[GET])
-def createuser(
+# @app.route('/createuser', methods=['GET', 'POST'])
+# def newuserpage():
+#     if request.method=='GET':            
+# #    else:
+#             return render_template('newuserpage')
+#     # need to make a user making page
+#     )
+ 
+@app.route('/predictions', methods=['GET'])
+def getpredictions():
+    # here want to select by resolved status?
+    with conn.cursor() as cur:
+#        cur.execute("""SELECT statement, smalltext, datecreated,
+#            initial_bet FROM predictions""")
+        cur.execute("""SELECT array_to_json(array_agg(row_to_json(t)))
+            FROM ( SELECT statement, smalltext, datecreated,
+            initial_bet FROM predictions ) t""")
+        query = cur.fetchone()[0]
+        query = json.dumps(query)
+#        for index, prediction in enumerate(query):
+#            redict = {}
+#            for key, value in prediction.items():
+#                if isinstance(value, unicode):
+#                    value = str(value)
+#                redict[str(key)] = value
+#            query[index] = redict
+    return query
+
+@app.route('/predmake', methods=['POST'])
+def makepredictions():
+    cur = conn.cursor()
+    cur.close()
 
 
+# need to make a login page
+    # write test for login page
+# create a test user
+    # write test for test user login
+# use the login page to create a session
+    # write test for test user session
+# make a new prediction page
+    # write test for prediction page
+# use prediction page to make new prediction
+    # write test for new prediction
+    # note: give predictions privacy levels
+    # me only, logged-in only, link only, public
+# make a predictions display page
+    # write test for display page
+# make a new bet page
+# link predictions display to bets option
+    # write test for bets page
+# make a new bet with new bet page
+    # write test for new bet
+
+
+# new user page
+# user profile page
+# home page queries for highest thing
+# graphs page
 
 
 
@@ -28,7 +89,7 @@ def createuser(
 # it looks like it just takes the next definitions to be the related function.
 @app.route('/')
 def index():
-    return 'Index Page'
+    return render_template("predictions.html")
 
 # -------
 @app.route('/hello')
@@ -56,25 +117,16 @@ def show_post(post_id):
     # float and path also work, where path accepts slashes
     return 'Post %d' % post_id
 
-@app.route('/login', methods=['GET','POST']) # by default, only GET
-def login():
-    if request.method == 'POST':
-        #do_the_login()
-        return 'YOU IS LOGGED IN NOW'
-    else:
-        #show_the_login_form()
-        return 'LOGIN PLZ'
-
 
 # -------
-from flask import url_for
-
-with app.test_request_context(): # wut TODO
-    print url_for('index')
-#     print url_for('hello', next='/')
-    print url_for('show_profile', username='hamnox')
-    print url_for('hello', name='John Doe')
-
+# from flask import url_for
+#
+# with app.test_request_context(): # wut TODO
+#     print url_for('index')
+# #     print url_for('hello', next='/')
+#     print url_for('show_profile', username='hamnox')
+#     print url_for('hello', name='John Doe')
+# 
 # this will build the hardcode URL fors you.
 # returns:
 # /
@@ -93,13 +145,14 @@ with app.test_request_context(): # wut TODO
 
 # ------------------------------
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=False)
+    app.run(host='0.0.0.0', debug=True)
+    conn.close()
 
 
 # -------
 # to get static files in dev, make a static folder
 # and reference static in a url_for
-print "static file url: " + url_for('static', filename='example.txt')
+# print "static file url: " + url_for('static', filename='example.txt')
 # TODO: make this work
 
 # -------
