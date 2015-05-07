@@ -1,4 +1,5 @@
-from flask import Flask, request, make_response
+from flask import Flask, request, url_for
+from flask import make_response, redirect
 from datetime import datetime, timedelta
 from passlib.hash import bcrypt
 from uuid import uuid4
@@ -27,6 +28,36 @@ app = Flask(__name__)
 #     # need to make a user making page
 #     )
  
+def login(user, password):
+    with conn.cursor() as cur:
+        cur.execute("""SELECT password FROM users
+                WHERE username=%s""",
+                (user,))
+        query = cur.fetchone()
+        if query is None:
+            raise ValueError('Invalid username or password')
+        else:
+            if bcrypt.verify(password,query[0]):
+                session_id = str(uuid4())
+                expiration = timedelta(minutes=20) + datetime.utcnow()
+                cur.execute("""INSERT INTO sessions (session_id,
+                    valid_user, expiration) values (%s, (SELECT id FROM
+                    users WHERE username=%s), %s)""",
+                    (session_id, user, expiration))
+                htmresp = make_response("you are logged in!")
+                htmresp.set_cookie('session',session_id,expires=expiration)
+                htmresp.set_cookie('user',user)
+                return htmresp
+            else:
+                raise ValueError('Invalid username or password')
+            #request.form['password'] not in 
+
+def verify_session(request_obj):
+    return ('testuser',True)
+
+def add_prediction():
+    pass
+
 @app.route('/predictions', methods=['GET', 'POST'])
 def getpredictions():
     if request.method == 'POST':
@@ -49,49 +80,79 @@ def getpredictions():
 def index():
     return render_template("predictions.html")
 
+# obviously have to fix this later
+@app.route('/new',methods=['GET','POST'])
+def new_prediction():
+    username, session_ok = verify_session(request)
+    if not session_ok:
+        return redirect(url_for('login_page'))
+    # add some javascript to verify/automake the upload date
+    if request.method == 'POST':
+        if request.form['statement'] != u'':
+            with conn.cursor() as cur:
+                cur.execute("""insert into predictions (created_by,
+                    datecreated, statement, smalltext) values
+                    ((SELECT id FROM users WHERE username = %s)
+                        , %s, %s, %s)""",
+                    (   username,
+                        datetime.utcnow(),
+                        request.form['statement'],
+                        request.form['smalltext']))
+                try:
+                    date = datetime.strptime(
+                            request.form['expectresolved'], "%Y-%m-%d")
+                except ValueError:
+                    date = timedelta(days=7) + datetime.utcnow()
+
+                cur.execute("""update predictions set expectresolved = %s where
+                                statement = %s""",
+                            (date, request.form['statement']))
+        return redirect(url_for('index'))
+    #try moving to the add_prediction whatever.
+
+# need to find someway to autocreate
+# teh first bet, no?
+
+    session = request.cookies.get('session')
+    if not session:
+        return redirect(url_for('login_page'))
+    else:
+        return '''
+            <form action="/new" method="POST" id="newpred">
+            prediction: <input type="text" name="statement"><br />
+            prediction details: <textarea name="smalltext" rows="4" form="newpred"></textarea><br />
+            expected completion: <input type="date" name="expectresolved"><br />
+            <input type="submit" value="Submit">
+            </form>
+            '''
+
 @app.route('/login', methods=['GET','POST'])
 def login_page():
     error = None
     if request.method == 'POST':
         try:
-            login(request.form['username'],request.form['password'])
-            return "you are logged in!"
+            resp = login(request.form['username'],request.form['password'])
+            conn.commit()
+            return resp
         except ValueError as e:
             return str(e)
     return '''
         <form action="/login" method="POST">
-        <input type="text" name="username" value="%s"><br />
-        <input type="password" name="password"><br />
+        username: <input type="text" name="username" value="%s"><br />
+        password: <input type="password" name="password"><br />
         <input type="submit" value="Submit"></form>
         ''' % (request.cookies.get('username'))
 
-def login(user, password):
-    with conn.cursor() as cur:
-        cur.execute("""SELECT password FROM users
-                WHERE username=%s""",
-                (user,))
-        query = cur.fetchone()
-        if query is None:
-            raise ValueError('Invalid username or password')
-        else:
-            if bcrypt.verify(password,query[0]):
-                session_id = str(uuid4())
-                expiration = timedelta(minutes=20) + datetime.utcnow()
-                cur.execute("""INSERT INTO sessions (session_id,
-                    valid_user, expiration) values (%s, (SELECT id FROM
-                    users WHERE username=%s), %s)""",
-                    (session_id, user, expiration))
-                conn.commit()
-                htmresp = make_response(render_template("hello.html"))
-                htmresp.set_cookie('session',session_id,expires=expiration)
-                htmresp.set_cookie('user',user)
-            else:
-                raise ValueError('Invalid username or password')
-            #request.form['password'] not in 
 
 @app.route('/logout')
 def logout():
-    pass
+    session = request.cookies.get('session')
+    if session:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM sessions where session_id = %s",
+                    (session,))
+    return "you are logged out!"
+
 # -------
 # to render from a template, create a Jinja2 template and put it
 # in the 'templates' folder
@@ -157,18 +218,17 @@ def test_login():
             follow_redirects=True)
         assert resp.status_code == 200
         assert 'Invalid username or password' in resp.get_data()
+        resp = tester.get("/logout")
+        assert resp.status_code == 200
+        assert "you are logged out!"
 
         
 
 
 
-# create a test user
-    # write test for test user login
 # make sure the table kicks out old sessions regularlike
 # use the login page to create a session
     # write test for test user session
-# make a new prediction page
-    # write test for prediction page
 # use prediction page to make new prediction
     # write test for new prediction
     # note: give predictions privacy levels
