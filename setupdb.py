@@ -1,3 +1,4 @@
+from passlib.hash import bcrypt
 import psycopg2
 import json
 
@@ -14,21 +15,23 @@ cur = conn.cursor()
 cur.execute("""
     create table if not exists users (
         id SERIAL PRIMARY KEY,
-        username char(256) UNIQUE NOT NULL,
-        password char(64) NOT NULL,
+        username varchar(256) UNIQUE NOT NULL,
+        password varchar(256) NOT NULL,
         datejoined timestamp NOT NULL
     )""")
 
-cur.execute(""" insert into users (username,
-    password, datejoined) values ('testuser',
-    'very secure hash', CURRENT_TIMESTAMP)""")
+cur.execute(""" insert into users (username, password,
+    datejoined) values ('testuser',%s, CURRENT_TIMESTAMP),
+    ('testuser2',%s, CURRENT_TIMESTAMP)""",
+    (bcrypt.encrypt("pass1"),bcrypt.encrypt("pass2")))
+
 
 cur.execute("""
     create table if not exists predictions (
         id SERIAL PRIMARY KEY,
         created_by integer NOT NULL references 
             users(id),
-        statement char(200) NOT NULL, 
+        statement varchar(200) NOT NULL, 
         smalltext text,
         datecreated timestamp NOT NULL,
         expectresolved timestamp,
@@ -59,6 +62,13 @@ cur.execute("""
     )""")
 
 #sessions and migrations
+
+cur.execute("""
+    create table if not exists sessions (
+       session_id char(36) PRIMARY KEY,
+       valid_user integer NOT NULL references users(id),
+       expiration timestamp NOT NULL
+    )""")
 
 conn.commit()
 
