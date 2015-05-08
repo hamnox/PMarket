@@ -5,6 +5,7 @@ from passlib.hash import bcrypt
 from uuid import uuid4
 import json
 import psycopg2
+from urlparse import urlparse, urljoin
 
 with open("postgres_auth", 'r') as reader:
     auth = json.load(reader)
@@ -122,20 +123,32 @@ def new_prediction():
 @app.route('/login', methods=['GET','POST'])
 def login_page():
     error = None
+    nextlink = get_redirect_target()
     if request.method == 'POST':
         try:
             resp = login(request.form['username'],request.form['password'])
             conn.commit()
-            return resp
+            return redirect(nextlink)
         except ValueError as e:
             return str(e)
-    return '''
-        <form action="/login" method="POST">
+    return '''<form action="/login" method="POST">
         username: <input type="text" name="username" value="%s"><br />
         password: <input type="password" name="password"><br />
-        <input type="submit" value="Submit"></form>
-        ''' % (request.cookies.get('username'))
+        <input type="hidden" name="next" value={{ next or ''}}>
+        <input type="submit" value="Submit"></form>''' % (request.cookies.get('username'))
 
+def get_redirect_target():
+    for target in request.values.get('next'), request.referrer:
+        if not target:
+            continue
+        if is_safe_url(target):
+            return target
+
+def is_safe_url(target):
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return test_url.scheme in ('http', 'https') and \
+           ref_url.netloc == test_url.netlocapp.route('/logout')
 
 @app.route('/logout')
 def logout():
