@@ -117,14 +117,7 @@ def new_prediction():
     if not session:
         return redirect(url_for('login_page'))
     else:
-        return '''
-            <form action="/new" method="POST" id="newpred">
-            prediction: <input type="text" name="statement"><br />
-            prediction details: <textarea name="smalltext" rows="4" form="newpred"></textarea><br />
-            expected completion: <input type="date" name="expectresolved"><br />
-            <input type="submit" value="Submit">
-            </form>
-            '''
+        return render_template("new_predict.html")
 
 @app.route('/login', methods=['GET','POST'])
 def login_page():
