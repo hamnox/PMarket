@@ -7,19 +7,23 @@ type="text/javascript"></script>
 <script type="text/javascript">
     function validate_form() {
         var x = document.forms["newpred"]["statement"].value;
-        if (x == null || x == "") {
+        if (x === null || x === "") {
             alert("Statement must be filled out");
             return false;
-        };
-        var x = document.forms["newpred"]["expectresolved"].value;
-        if ((x == null || x =="")
-                || !x.match(/^[12]\d{3}-[01]\d-[0123]\d$/)) {
-            var r = Date.now();
-            r.setDate(r.getDate() + 14);
-            document.forms["newpred"]["expectresolved"].value = r.toJSON().slice(0,10)
-        };
-        jsondata = document.forms.to_json();
-            alert(jsondata);
+        }
+        var x = document.forms.newpred.expectresolved.value;
+        if ((x !== null && x !== "") &&
+                !x.match(/^[12]\d{3}-[01]\d-[0123]\d$/)) {
+            r = confirm("The date you entered is invalid,\n"+
+                    " (must be YYYY-MM-DD)\n" +
+                    "continue with no completion date?");
+            if (r == true) {
+                document.forms.newpred.expectresolved.value = '';
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
 </script>
 </head>
@@ -28,7 +32,7 @@ type="text/javascript"></script>
 <body>
 
 <form id="newpred" method="POST" action="/new" onsubmit="return validate_form()">
-prediction: <input type="text" name="statement" required><br />
+prediction (required): <input type="text" name="statement" required><br />
 prediction details: <textarea name="smalltext" rows="4" form="newpred"></textarea><br />
 expected completion: <input type="date" name="expectresolved"><br />
 <input type="submit" value="Submit">
