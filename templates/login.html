@@ -1,0 +1,9 @@
+<form action="/login" method="POST">
+    username: <input type="text" name="username"
+                value="{{ user if user != None }}"><br />
+        password: <input type="password" name="password"><br />
+        <input type="hidden" name="next" value="{{ next }}">
+        <input type="submit" value="Submit"></form><br />
+    {% if msg != None %}
+        <font color="red"><b>{{ msg }}</b></font> <br />
+    {% endif %}

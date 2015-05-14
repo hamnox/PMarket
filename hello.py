@@ -1,4 +1,4 @@
-from flask import Flask, request, url_for
+from flask import Flask, request, url_for, render_template
 from flask import make_response, redirect
 from datetime import datetime, timedelta
 from passlib.hash import bcrypt
@@ -11,50 +11,61 @@ with open("postgres_auth", 'r') as reader:
     auth = json.load(reader)
 conn = psycopg2.connect(**auth)
 
-# using flask.pocoo.org/docs/0.10/quickstart
-# alright, first order of business:
-# "
-# if you are using a single module (as in this example), you should use
-# __name__ because depending on if it's started as application or imported as
-# module the name will be different ('__main__' versus the actual import name)
-# "
-
 app = Flask(__name__)
 
-# @app.route('/createuser', methods=['GET', 'POST'])
-# def newuserpage():
-#     if request.method=='GET':            
-# #    else:
-#             return render_template('newuserpage')
-#     # need to make a user making page
-#     )
- 
-def login(user, password):
+"""Takes a username and a password string, returns a Tuple:
+        SessionID, NotificationString
+    Session is null on error.
+"""
+
+def new_session(user, password):
     with conn.cursor() as cur:
         cur.execute("""SELECT password FROM users
                 WHERE username=%s""",
                 (user,))
         query = cur.fetchone()
         if query is None:
-            raise ValueError('Invalid username or password')
+            return (None, 'Invalid username or password')
         else:
             if bcrypt.verify(password,query[0]):
                 session_id = str(uuid4())
-                expiration = timedelta(minutes=20) + datetime.utcnow()
-                cur.execute("""INSERT INTO sessions (session_id,
-                    valid_user, expiration) values (%s, (SELECT id FROM
-                    users WHERE username=%s), %s)""",
-                    (session_id, user, expiration))
-                htmresp = make_response("you are logged in!")
-                htmresp.set_cookie('session',session_id,expires=expiration)
-                htmresp.set_cookie('user',user)
-                return htmresp
+                cur.execute("""INSERT
+                        INTO sessions (id, login)
+                        VALUES (%s, (
+                            SELECT id
+                            FROM users
+                            WHERE username=%s))""",
+                    (session_id, user))
+                conn.commit()
+                return (session_id, "%s is logged in!" % (user,))
             else:
-                raise ValueError('Invalid username or password')
-            #request.form['password'] not in 
+                return (None, 'Invalid username or password')
 
-def verify_session(request_obj):
-    return ('testuser',True)
+"""Takes a dict with username and sessionID string, returns a Tuple:
+        Username, DescriptionString
+    If session not valid, username is null
+"""
+def verify_session(cookie):
+    user = cookie.get('user')
+    session = cookie.get('session')
+    print user," ", session
+
+    if (user == None) or (session == None):
+        return (None,"Cookie contains no valid session")
+
+    with conn.cursor() as cur:
+        cur.execute("""SELECT users.username
+                FROM sessions JOIN users
+                ON sessions.login = users.id
+                WHERE sessions.id = %s""",
+                (session,))
+        query = cur.fetchone()
+        if query is None:
+            return (None, 'User session invalid')
+        elif query[0] != user:
+            return (None, 'User session is invalid')
+        else:
+            return (user, '%s is logged in!' % (user,))
 
 def add_prediction():
     pass
@@ -63,16 +74,23 @@ def add_prediction():
 def getpredictions():
     if request.method == 'POST':
         return "How did you even get here? SHOO."
-    # here want to select by resolved status?
-    with conn.cursor() as cur:
-#        cur.execute("""SELECT statement, smalltext, datecreated,
-#            initial_bet FROM predictions""")
-        cur.execute("""SELECT array_to_json(array_agg(row_to_json(t)))
-            FROM ( SELECT statement, smalltext, datecreated,
-            initial_bet FROM predictions ) t""")
-        query = cur.fetchone()[0]
-        query = json.dumps(query)
-    return query
+    user, string = verify_session(request.cookies)
+    if user == None:
+        return string
+    else:
+        with conn.cursor() as cur:
+            cur.execute("""SELECT array_to_json(array_agg(row_to_json(t)))
+                FROM (
+                    SELECT statement,
+                           smalltext,
+                           created
+                    FROM predictions JOIN users
+                        ON users.id = predictions.created_by
+                    WHERE users.username = %s
+                    ) t""", (user,))
+            query = cur.fetchone()[0]
+            query = json.dumps(query)
+        return query
 
 
 # self-explanatory, it tunes the app to accept the '/' address
@@ -81,120 +99,68 @@ def getpredictions():
 def index():
     return render_template("predictions.html")
 
-# obviously have to fix this later
-@app.route('/new',methods=['GET','POST'])
-def new_prediction():
-    username, session_ok = verify_session(request)
-    if not session_ok:
-        return redirect(url_for('login_page'))
-    # add some javascript to verify/automake the upload date
-    if request.method == 'POST':
-        if request.form['statement'] != u'':
-            with conn.cursor() as cur:
-                cur.execute("""insert into predictions (created_by,
-                    datecreated, statement, smalltext) values
-                    ((SELECT id FROM users WHERE username = %s)
-                        , %s, %s, %s)""",
-                    (   username,
-                        datetime.utcnow(),
-                        request.form['statement'],
-                        request.form['smalltext']))
-                try:
-                    date = datetime.strptime(
-                            request.form['expectresolved'], "%Y-%m-%d")
-                except ValueError:
-                    date = timedelta(days=7) + datetime.utcnow()
-
-                cur.execute("""update predictions set expectresolved = %s where
-                                statement = %s""",
-                            (date, request.form['statement']))
-        return redirect(url_for('index'))
-    #try moving to the add_prediction whatever.
+# # obviously have to fix this later
+# @app.route('/new',methods=['GET','POST'])
+# def new_prediction():
+#      = verify_session(request)
+#     if not session_ok:
+#         return redirect(url_for('login_page'))
+#     # add some javascript to verify/automake the upload date
+#     if request.method == 'POST':
+#         if request.form['statement'] != u'':
+#             with conn.cursor() as cur:
+#                 cur.execute("""insert into predictions (created_by,
+#                     datecreated, statement, smalltext) values
+#                     ((SELECT id FROM users WHERE username = %s)
+#                         , %s, %s, %s)""",
+#                     (   username,
+#                         datetime.utcnow(),
+#                         request.form['statement'],
+#                         request.form['smalltext']))
+#                 try:
+#                     date = datetime.strptime(
+#                             request.form['expectresolved'], "%Y-%m-%d")
+#                 except ValueError:
+#                     date = timedelta(days=7) + datetime.utcnow()
+# 
+#                 cur.execute("""update predictions set expectresolved = %s where
+#                                 statement = %s""",
+#                             (date, request.form['statement']))
+#         return redirect(url_for('index'))
+#     #try moving to the add_prediction whatever.
 
 # need to find someway to autocreate
 # teh first bet, no?
 
-    session = request.cookies.get('session')
-    if not session:
-        return redirect(url_for('login_page'))
-    else:
-        return render_template("new_predict.html")
+#     session = request.cookies.get('session')
+#     if not session:
+#         return redirect(url_for('login_page'))
+#     else:
+#         return render_template("new_predict.html")
 
 @app.route('/login', methods=['GET','POST'])
 def login_page():
-    error = None
-    nextlink = get_redirect_target()
     if request.method == 'POST':
-        try:
-            resp = login(request.form['username'],request.form['password'])
-            conn.commit()
-            return redirect(nextlink)
-        except ValueError as e:
-            return str(e)
-    return '''<form action="/login" method="POST">
-        username: <input type="text" name="username" value="%s"><br />
-        password: <input type="password" name="password"><br />
-        <input type="hidden" name="next" value={{ next or ''}}>
-        <input type="submit" value="Submit"></form>''' % (request.cookies.get('username'))
-
-def get_redirect_target():
-    for target in request.values.get('next'), request.referrer:
-        if not target:
-            continue
-        if is_safe_url(target):
-            return target
-
-def is_safe_url(target):
-    ref_url = urlparse(request.host_url)
-    test_url = urlparse(urljoin(request.host_url, target))
-    return test_url.scheme in ('http', 'https') and \
-           ref_url.netloc == test_url.netlocapp.route('/logout')
+        session, resultstr = new_session(request.form['username'],request.form['password'])
+        if session == None:
+            return render_template("login.html", msg=resultstr)
+        expiration = timedelta(minutes=20) + datetime.utcnow()
+        htmresp = make_response(render_template('login.html',msg=resultstr))
+        htmresp.set_cookie('session',session,expires=expiration)
+        htmresp.set_cookie('user',request.form['username'])
+        return htmresp
+    return render_template("login.html")
 
 @app.route('/logout')
 def logout():
     session = request.cookies.get('session')
-    if session:
+    if session != None:
         with conn.cursor() as cur:
-            cur.execute("DELETE FROM sessions where session_id = %s",
+            cur.execute("DELETE FROM sessions where id = %s",
                     (session,))
-    return "you are logged out!"
+    return render_template("login.html",msg='You are logged out!')
 
 # -------
-# to render from a template, create a Jinja2 template and put it
-# in the 'templates' folder
-from flask import render_template
-@app.route('/hello/<name>')
-def hello(name=None):
-    return render_template('hello.html', name=name)
-# -------
-# wouldn't want to forget variables! stick then in angle brackets
-
-@app.route('/user/<username>')
-def show_profile(username):
-    return 'User %s' % username
-
-@app.route('/post/<int:post_id>')
-def show_post(post_id):
-    # make the variable be an int.
-    # float and path also work, where path accepts slashes
-    return 'Post %d' % post_id
-
-
-# -------
-# from flask import url_for
-#
-# with app.test_request_context(): # wut TODO
-#     print url_for('index')
-# #     print url_for('hello', next='/')
-#     print url_for('show_profile', username='hamnox')
-#     print url_for('hello', name='John Doe')
-# 
-# this will build the hardcode URL fors you.
-# returns:
-# /
-# /hello?next=/
-# /user/hamnox
-
 # ------------------------------
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
@@ -208,6 +174,7 @@ def test_login():
                 username="testuser",
                 password="pass1"),
             follow_redirects=True)
+
         assert resp.status_code == 200
         assert "you are logged in!" in resp.get_data() 
         resp = tester.post("/login",
@@ -226,9 +193,27 @@ def test_login():
         assert 'Invalid username or password' in resp.get_data()
         resp = tester.get("/logout")
         assert resp.status_code == 200
-        assert "you are logged out!"
+        assert "you are logged out!" in resp.get_data()
 
-        
+
+def test_newpred():
+    with app.test_client() as tester:
+        resp = tester.post("/login",
+            data=dict(
+                username="testuser",
+                password="pass1"),
+            follow_redirects=True)
+        assert resp.status_code == 200
+        from random import randint
+        randtext="test input " + str(randint(-99999,99999))
+        resp = tester.post("/new",
+            data=dict(
+                statement=randtext,
+                smalltext="",
+                expecteddate="2015-12-25"),
+            follow_redirects=True)
+        assert resp.status_code == 200
+        assert randtext in resp.get_data()
 
 
 
@@ -269,3 +254,4 @@ def test_login():
 # to look like this:
 #     app.run(host='0.0.0.0')
 # "
+
