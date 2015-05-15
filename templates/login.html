@@ -1,3 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Login Here{% endblock %}
+{% block content %}
 <form action="/login" method="POST">
     username: <input type="text" name="username"
                 value="{{ user if user != None }}"><br />
@@ -7,3 +10,4 @@
     {% if msg != None %}
         <font color="red"><b>{{ msg }}</b></font> <br />
     {% endif %}
+{% endblock %}

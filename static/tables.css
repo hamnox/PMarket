@@ -1,13 +1,8 @@
 div #main {
 }
 
-div #rownames {
-    font: bold 120% sans-serif;
-}
 
-div #table {
-    display: block;
-    display: table-row-group;
+table {
     border: 2px solid black;
     border-radius: 3px;
     width: 95%;
@@ -17,19 +12,19 @@ div #table {
 
 }
 
-div .row {
+tr, thead{
     width: 100%;
-    display: block;
-    display: table-row;
 }
 
-div .cell {
+th, td{
     width: 100%;
     padding: 5px;
     border: 1px solid black;
     min-width: 10%;
-    display: inline-block;
-    display: table-cell;
+}
+
+thead{
+    font: bold 120% sans-serif;
 }
 
 

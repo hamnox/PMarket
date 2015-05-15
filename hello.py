@@ -6,12 +6,14 @@ from uuid import uuid4
 import json
 import psycopg2
 from urlparse import urlparse, urljoin
+# from flask_sslify import SSLify
 
 with open("postgres_auth", 'r') as reader:
     auth = json.load(reader)
 conn = psycopg2.connect(**auth)
 
 app = Flask(__name__)
+# sslify = SSLify(app)
 
 """Takes a username and a password string, returns a Tuple:
         SessionID, NotificationString
@@ -48,7 +50,6 @@ def new_session(user, password):
 def verify_session(cookie):
     user = cookie.get('user')
     session = cookie.get('session')
-    print user," ", session
 
     if (user == None) or (session == None):
         return (None,"Cookie contains no valid session")
@@ -143,6 +144,11 @@ def login_page():
     if request.method == 'POST':
         session, resultstr = new_session(request.form['username'],request.form['password'])
         if session == None:
+            prevsession = request.cookies.get('session')
+            if prevsession != None:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM sessions where id = %s",
+                            (prevsession,))
             return render_template("login.html", msg=resultstr)
         expiration = timedelta(minutes=20) + datetime.utcnow()
         htmresp = make_response(render_template('login.html',msg=resultstr))

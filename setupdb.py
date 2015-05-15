@@ -65,30 +65,6 @@ cur.execute("""
         result boolean
     )""")
 
-# insert some predictions
-cur.execute("""INSERT
-    INTO predictions (created_by, created, statement)
-    SELECT 1, CURRENT_TIMESTAMP, 'once a jolly swagman'
-    WHERE 'once a jolly swagman' NOT IN
-        (
-        SELECT statement
-        FROM predictions
-        )""")
-cur.execute("""INSERT
-    INTO predictions (created_by, created, statement)
-    SELECT 1, CURRENT_TIMESTAMP, 'elementary, my dear watson'
-    WHERE 'elementary, my dear watson' NOT IN
-        (
-        SELECT statement
-        FROM predictions
-        )""")
-
-# need to find someway to autocreate
-# teh first bet, no?
-# CREATE TRIGGER trigger_name AFTER INSERT ON table_name
-#   FOR EACH ROW EXECUTE PROCEDURE function_name(arguments)
-# next see CREATE FUNCTION
-
 # bets table
 cur.execute("""
     create table if not exists bets (
@@ -100,6 +76,57 @@ cur.execute("""
         prediction integer NOT NULL references
             predictions(id)
     )""")
+
+# bets autocreate function
+# http://stackoverflow.com/questions/
+#     2253357/using-rule-to-insert-into-secondary-table-
+#     auto-increments-sequence
+
+cur.execute("""CREATE OR REPLACE FUNCTION housebet()
+        RETURNS TRIGGER AS $$
+            BEGIN
+                INSERT INTO bets (created_by, credence,
+                        created, prediction)
+                SELECT 0, 50, new.created, new.id
+                    WHERE (0,new.id) NOT IN
+                        (
+                        SELECT created_by, prediction
+                        FROM bets
+                        );
+                RETURN NEW;
+            END;
+        $$
+        LANGUAGE plpgsql volatile;
+    """)
+
+cur.execute("""DROP TRIGGER IF EXISTS autohousebet
+            ON predictions""")
+
+cur.execute("""CREATE TRIGGER autohousebet
+            AFTER insert
+            ON predictions
+            FOR EACH ROW
+            EXECUTE PROCEDURE housebet()
+            """)
+
+# insert some predictions
+cur.execute("""INSERT
+    INTO predictions (created_by, created, statement)
+    SELECT 1, CURRENT_TIMESTAMP, 'once a jolly swagman'
+    WHERE 'once a jolly swagman' NOT IN
+        (
+        SELECT statement
+        FROM predictions
+        )""")
+
+cur.execute("""INSERT
+    INTO predictions (created_by, created, statement)
+    SELECT 1, CURRENT_TIMESTAMP, 'elementary, my dear watson'
+    WHERE 'elementary, my dear watson' NOT IN
+        (
+        SELECT statement
+        FROM predictions
+        )""")
 
 #sessions and migrations
 
