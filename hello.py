@@ -3,7 +3,7 @@ from flask import make_response, redirect
 from datetime import datetime, timedelta
 from passlib.hash import bcrypt
 from uuid import uuid4
-import json
+import simplejson as json
 import psycopg2
 from urlparse import urlparse, urljoin
 # from flask_sslify import SSLify
@@ -80,25 +80,63 @@ def getpredictions():
         return string
     else:
         with conn.cursor() as cur:
-            cur.execute("""SELECT array_to_json(array_agg(row_to_json(t)))
-                FROM (
+            cur.execute("""
                     SELECT statement,
                            smalltext,
-                           created
+                           username,
+                           bet_users,
+                           bet_credence
                     FROM predictions JOIN users
-                        ON users.id = predictions.created_by
+                        on users.id = predictions.created_by
+                        LEFT JOIN ( SELECT max(bets.prediction) as bet_pred,
+                                array_agg(users.username) as bet_users,
+                                array_agg(bets.credence) as bet_credence,
+                                    array_agg(bets.created::varchar) as bet_dates
+                            FROM bets JOIN users
+                            ON bets.created_by = users.id
+                            GROUP BY bets.prediction
+                            ORDER BY bet_credence) as bet_agger
+                        ON bet_pred = predictions.id
                     WHERE users.username = %s
-                    ) t""", (user,))
-            query = cur.fetchone()[0]
+                        OR predictions.private != true
+                    """, (user,))
+            # someday, deal with datetime strings on our end
+            query = [["Statement", "Description","Created By","Bets"]]
+            result = list(cur.fetchall())
+            for i, row in enumerate(result):
+                result[i] = list(row)
+                if result[i][3] is None:
+                    pass
+                else:
+                    result[i][3] = zip(row[3],row[4])
+                result[i].pop(4)
+            query.extend(result)
             query = json.dumps(query)
         return query
 
+# @app.route('/bets', methods=['GET','POST'])
+# def get_bets():
+#     if request.method == 'POST':
+#         return "How did you even get here? SHOO."
+#     user, string = verify_session(request.cookies)
+#     if user == None:
+#         return string
+#     else:
+#         with conn.cursor() as cur:
+#             cur.execute("""
+#                 SELECT """
+# 
+# 
 
 # self-explanatory, it tunes the app to accept the '/' address
 # it looks like it just takes the next definitions to be the related function.
 @app.route('/')
 def index():
-    return render_template("predictions.html")
+    user, string = verify_session(request.cookies)
+    if user == None:
+        return render_template("login.html",msg=string)
+    else:
+        return render_template("predictions.html")
 
 # # obviously have to fix this later
 # @app.route('/new',methods=['GET','POST'])

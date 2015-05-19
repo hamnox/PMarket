@@ -9,18 +9,38 @@
     <script type="text/javascript">
         $(document).ready(function () {
             $.getJSON("/predictions",function(result) {
-                $.each(result, function(i, field) {
-                    if(field.smalltext !== null) {
-                    $("<tr><td>"+
-                        field.statement+"</td>"+"<td>"+
-                        field.smalltext+"</td>"+"<td>"+
-                        field.created+"</td></tr>").appendTo($("table:last"));
+                result.forEach(function (prediction, i) {
+                    if (i === 0) {
+                        prediction.forEach(function (field, j) {
+                            $("<th>" + field +"</th>").appendTo($("thead:first"));
+                            });
                     } else {
-                    $("<tr><td>"+
-                        field.statement+"</td>"+"<td>-</td>"+"<td>"+
-                        field.created+"</td></tr>").appendTo($("table:last"));
-                    }
+                        $("<tr></tr>").appendTo($("tbody:first"));
+                        prediction.forEach(function (field, j) {
+                            if (field !== null) {
+                                if (Array.isArray(field)) {
+                                $("<td><table></table></td>").appendTo($("tbody>tr:last"));
+                                $("td:last").css("padding","0px");
 
+                                    field.forEach(function (subfield, si) {
+                                    $("<tr></tr>").appendTo($("table:last"));
+                                        if (Array.isArray(subfield)) {
+                                            subfield.forEach(function (subsubfield, ssi){
+                                                $("<td>"+subsubfield+"</td>").appendTo("tr:last");
+                                            });
+                                        } else {
+                                            $("<td>"+subfield+"</td>").appendTo("tr:last");
+                                        }
+                                    });
+                                } else {
+                                $("<td>" + field + "</td>").appendTo($("tbody>tr:last"));
+                                }
+                            } else {
+                                $("<td></td>").appendTo($("tbody>tr:last"));
+                            }
+
+                        });
+                    }
                 });
             });
         });
@@ -29,11 +49,8 @@
 {% block content %}
     {{ super() }}
     <table>
-        <thead>
-            <th>Prediction</th>
-            <th>Smalltext</th>
-            <th>Date Created</th>
-            </thead>
+        <thead></thead>
+        <tbody></tbody>
     </table>
 {% endblock %}
 

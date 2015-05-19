@@ -18,7 +18,8 @@ cur.execute("""
         id SERIAL PRIMARY KEY,
         username varchar(256) UNIQUE NOT NULL,
         password varchar(256) NOT NULL,
-        joined timestamp NOT NULL
+        joined timestamp
+                DEFAULT CURRENT_TIMESTAMP
     )""")
 
 # insert some test users
@@ -32,8 +33,8 @@ cur.execute(""" INSERT
         )""")
 
 cur.execute(""" INSERT
-    INTO users (username, password, joined)
-    SELECT 'testuser',%s, CURRENT_TIMESTAMP
+    INTO users (username, password)
+    SELECT 'testuser',%s
     WHERE 'testuser' NOT IN
         (
         SELECT username
@@ -42,8 +43,8 @@ cur.execute(""" INSERT
     (bcrypt.encrypt("pass1"),))
 
 cur.execute("""INSERT
-    INTO users (username, password, joined)
-    SELECT 'testuser2',%s, CURRENT_TIMESTAMP
+    INTO users (username, password)
+    SELECT 'testuser2',%s
     WHERE 'testuser2' NOT IN
         (
         SELECT username
@@ -59,10 +60,11 @@ cur.execute("""
             users(id),
         statement varchar(200) NOT NULL, 
         smalltext text,
-        created timestamp NOT NULL,
+        created timestamp DEFAULT CURRENT_TIMESTAMP,
         due timestamp,
         resolved timestamp,
-        result boolean
+        result boolean,
+        private boolean DEFAULT false
     )""")
 
 # bets table
@@ -111,8 +113,8 @@ cur.execute("""CREATE TRIGGER autohousebet
 
 # insert some predictions
 cur.execute("""INSERT
-    INTO predictions (created_by, created, statement)
-    SELECT 1, CURRENT_TIMESTAMP, 'once a jolly swagman'
+    INTO predictions (created_by, statement)
+    SELECT 1, 'once a jolly swagman'
     WHERE 'once a jolly swagman' NOT IN
         (
         SELECT statement
@@ -120,8 +122,8 @@ cur.execute("""INSERT
         )""")
 
 cur.execute("""INSERT
-    INTO predictions (created_by, created, statement)
-    SELECT 1, CURRENT_TIMESTAMP, 'elementary, my dear watson'
+    INTO predictions (created_by, statement)
+    SELECT 1, 'elementary, my dear watson'
     WHERE 'elementary, my dear watson' NOT IN
         (
         SELECT statement
@@ -134,7 +136,10 @@ cur.execute("""
     create table if not exists sessions (
         id char(36) PRIMARY KEY,
         login integer NOT NULL references users(id),
+        initiated timestamp
+                DEFAULT CURRENT_TIMESTAMP,
         expiration timestamp
+                DEFAULT CURRENT_TIMESTAMP + interval '7 days'
     )""")
 
 conn.commit()
