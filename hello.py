@@ -115,7 +115,7 @@ def get_predictions():
         return query
 
 @app.route('/my_bets', methods=['GET'])
-def bets_page()
+def bets_page():
     user, string = verify_session(request.cookies)
     if user == None:
         return render_template("login.html",msg=string)
