@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}User Predictions{% endblock %}
+{% block title %}{{ display_title }}{% endblock %}
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css"
@@ -8,7 +8,7 @@
             type="text/javascript"></script>
     <script type="text/javascript">
         $(document).ready(function () {
-            $.getJSON("/predictions",function(result) {
+                $.getJSON("{{ sendurl }}",function(result) {
                 result.forEach(function (prediction, i) {
                     if (i === 0) {
                         prediction.forEach(function (field, j) {

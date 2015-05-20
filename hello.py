@@ -71,8 +71,8 @@ def verify_session(cookie):
 def add_prediction():
     pass
 
-@app.route('/predictions', methods=['GET', 'POST'])
-def getpredictions():
+@app.route('/predictions',methods=['GET'])
+def get_predictions():
     if request.method == 'POST':
         return "How did you even get here? SHOO."
     user, string = verify_session(request.cookies)
@@ -114,19 +114,61 @@ def getpredictions():
             query = json.dumps(query)
         return query
 
-# @app.route('/bets', methods=['GET','POST'])
-# def get_bets():
-#     if request.method == 'POST':
-#         return "How did you even get here? SHOO."
-#     user, string = verify_session(request.cookies)
-#     if user == None:
-#         return string
-#     else:
-#         with conn.cursor() as cur:
-#             cur.execute("""
-#                 SELECT """
-# 
-# 
+@app.route('/my_bets', methods=['GET'])
+def bets_page()
+    user, string = verify_session(request.cookies)
+    if user == None:
+        return render_template("login.html",msg=string)
+    else:
+        return render_template("predictions.html",
+                    display_title="User Bets",
+                    sendurl=url_for('get_bets'))
+
+
+@app.route('/bets', methods=['GET'])
+def get_bets():
+    if request.method == 'POST':
+        return "How did you even get here? SHOO."
+    user, string = verify_session(request.cookies)
+    if user == None:
+        return string
+    else:
+        with conn.cursor() as cur:
+            cur.execute("""
+                    SELECT max(pd.statement),
+                            max(pd.username),
+                            array_agg(users.username),
+                            array_agg(bets.credence)
+                    FROM bets JOIN users
+                        ON bets.created_by = users.id
+                        JOIN (
+                            SELECT predictions.id,
+                                statement, username
+                            FROM predictions
+                            JOIN users
+                            ON created_by = users.id
+                            ) pd
+                        ON bets.prediction = pd.id
+                    WHERE bets.prediction in (
+                        SELECT bets.prediction
+                        FROM bets JOIN users
+                        ON bets.created_by = users.id
+                        WHERE users.username = %s
+                            )
+                    GROUP BY bets.prediction
+                    """, (user,))
+            query = [["Statement","Created By","Bets"]]
+            result = list(cur.fetchall())
+            for i, row in enumerate(result):
+                result[i] = list(row)
+                if result[i][2] is None:
+                    pass
+                else:
+                    result[i][2] = zip(row[2],row[3])
+                result[i].pop(3)
+            query.extend(result)
+            query = json.dumps(query)
+        return query
 
 # self-explanatory, it tunes the app to accept the '/' address
 # it looks like it just takes the next definitions to be the related function.
@@ -136,7 +178,9 @@ def index():
     if user == None:
         return render_template("login.html",msg=string)
     else:
-        return render_template("predictions.html")
+        return render_template("predictions.html",
+                    display_title="User Predictions",
+                    sendurl=url_for('get_predictions'))
 
 # # obviously have to fix this later
 # @app.route('/new',methods=['GET','POST'])
