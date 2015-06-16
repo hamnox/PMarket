@@ -39,16 +39,23 @@
                                 $("<td></td>").appendTo($("tbody>tr:last"));
                             }
 
+                            // .load( url [, data ] [, complete ] )
+                            // Load data from the server and place the returned HTML into the matched element.
                         });
                     }
                 });
             });
         });
     </script>
+    <script src="{{ url_for('static',filename='sortable_us.js') }}"
+            type="text/javascript">
+        ts_makeSortable(document.getElementById('predictions'));
+
+    </script>
     {% endblock %}
 {% block content %}
     {{ super() }}
-    <table>
+    <table class="sortable" id="predictions">
         <thead></thead>
         <tbody></tbody>
     </table>

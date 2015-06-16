@@ -180,44 +180,45 @@ def index():
                     display_title="User Predictions",
                     sendurl=url_for('get_predictions'))
 
-# # obviously have to fix this later
-# @app.route('/new',methods=['GET','POST'])
-# def new_prediction():
-#      = verify_session(request)
-#     if not session_ok:
-#         return redirect(url_for('login_page'))
-#     # add some javascript to verify/automake the upload date
-#     if request.method == 'POST':
-#         if request.form['statement'] != u'':
-#             with conn.cursor() as cur:
-#                 cur.execute("""insert into predictions (created_by,
-#                     datecreated, statement, smalltext) values
-#                     ((SELECT id FROM users WHERE username = %s)
-#                         , %s, %s, %s)""",
-#                     (   username,
-#                         datetime.utcnow(),
-#                         request.form['statement'],
-#                         request.form['smalltext']))
-#                 try:
-#                     date = datetime.strptime(
-#                             request.form['expectresolved'], "%Y-%m-%d")
-#                 except ValueError:
-#                     date = timedelta(days=7) + datetime.utcnow()
-# 
-#                 cur.execute("""update predictions set expectresolved = %s where
-#                                 statement = %s""",
-#                             (date, request.form['statement']))
-#         return redirect(url_for('index'))
-#     #try moving to the add_prediction whatever.
+# obviously have to fix this later
+@app.route('/new',methods=['GET','POST'])
+def add_prediction():
+    if request.method == 'POST':
+        user, string = verify_session(request.cookies)
+        if user == None:
+            return 'Error'
+
+        with conn.cursor() as cur:
+            try:
+                date = datetime.strptime(
+                        request.form['expectresolved'], "%Y-%m-%d")
+            except ValueError as e:
+                return 'Error'
+
+            cur.execute("""insert into
+                    predictions (created_by,
+                        statement, smalltext, due)
+                    values ((
+                        SELECT id
+                        FROM users
+                        WHERE username = %s)
+                    , %s, %s, %s)""",
+                  #  RETURNING predictions.id""",
+                (user,
+                request.form['statement'],
+                request.form['smalltext'], date))
+            return 'Valid'
+    else:
+        user, string = verify_session(request.cookies)
+        if user == None:
+            return render_template("login.html",msg=string)
+        else:
+            return render_template("new_predict.html")
+
+    #try moving to the add_prediction whatever.
 
 # need to find someway to autocreate
 # teh first bet, no?
-
-#     session = request.cookies.get('session')
-#     if not session:
-#         return redirect(url_for('login_page'))
-#     else:
-#         return render_template("new_predict.html")
 
 @app.route('/login', methods=['GET','POST'])
 def login_page():
