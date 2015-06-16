@@ -112,15 +112,112 @@ def get_predictions():
             query = json.dumps(query)
         return query
 
-@app.route('/my_bets', methods=['GET'])
+@app.route('/api/1/', methods=['GET','POST'])
+def predplusbets():
+    user, string = verify_session(request.cookies)
+    if user == None:
+        return render_template("login.html",msg=string)
+    else:
+        with conn.cursor() as cur:
+            cur.execute("""
+                    SELECT statement,
+                           smalltext,
+                           username,
+                           predictions.id,
+                           predictions.created
+                    FROM predictions JOIN users
+                        on users.id = predictions.created_by
+                    WHERE users.username = %s
+                        OR predictions.private != true
+                    """, (user,))
+            pd_table = {'header': ['Statement',
+                                    'Description',
+                                    'Created By',
+                                    'Bets',
+                                    'Created'],
+                        'body': list(cur.fetchall())}
+
+        return render_template('pd.html',
+                pd_table=pd_table,
+                submit_url=url_for('bets_page'),
+                submit_type="POST",
+                submit_col=4)
+
+
+@app.route('/pd_bets', methods=['POST'])
 def bets_page():
     user, string = verify_session(request.cookies)
     if user == None:
         return render_template("login.html",msg=string)
     else:
-        return render_template("predictions.html",
-                    display_title="User Bets",
-                    sendurl=url_for('get_bets'))
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT resolved, private,
+                        username,
+                        statement,
+                        smalltext,
+                        created, due,
+                        result
+                FROM predictions JOIN users
+                    ON users.id = predictions.created_by
+                WHERE predictions.id = %s""",
+                (int(request.form["Bets"]),))
+
+            result = cur.fetchone()
+            (pd_resolved, pd_privacy, pd_user, pd_statement) = result[0:4]
+            if pd_user != user and pd_privacy:
+                abort(401)
+
+            prefix = """Prediction: %s<br />
+                Created By: %s<br />""" % (pd_user, pd_statement)
+
+            (pd_desc, pd_created, pd_due, pd_result) = result[4:]
+            if pd_created is not None:
+                prefix = prefix + "Created: " + str(pd_created) + "<br />"
+            if pd_desc is not None:
+                if pd_desc != "":
+                    prefix = prefix + "Description: " + str(pd_desc) +"<br />"
+
+            cur.execute("""
+                SELECT  users.username,
+                        bets.credence,
+                        bets.created
+                FROM bets JOIN users
+                ON bets.created_by = users.id
+                WHERE bets.prediction = %s""",
+                (int(request.form["Bets"]),))
+
+            pd_table = {'header': ['User',
+                                    'Bet',
+                                    'Bet Date'],
+                        'body': list(cur.fetchall())}
+
+            if pd_resolved:
+                prefix = prefix + "Completed " + str(pd_resolved) + "<br />"
+                prefix = prefix + "Result: " + str(pd_result) +".<br />"
+                postfix = "Market Closed."
+            else:
+                if pd_due is not None:
+                    prefix = prefix + "Resolution Due: " + str(pd_due) + "<br />"
+                postfix="""<br /><div id="bet_submit"><form action=%s method="POST">
+                        Credence: <input type="text" name="credence">
+                        <input type="submit"></form></div>
+                        """ % url_for('bets_page')
+
+            if not pd_privacy:
+                prefix = prefix + "<br />This prediction is public.</br >"
+            prefix = prefix + "<br />"
+
+
+        return render_template('pd.html',
+                display_title=pd_statement,
+                pd_table=pd_table,
+                prefix=prefix,
+                postfix=postfix)
+
+@app.route('/addbets',methods=['POST'])
+def add_bet():
+    pass
 
 
 @app.route('/bets', methods=['GET'])
