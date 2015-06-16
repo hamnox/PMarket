@@ -67,9 +67,7 @@ def verify_session(cookie):
             return (None, 'User session is invalid')
         else:
             return (user, '%s is logged in!' % (user,))
-
-def add_prediction():
-    pass
+    return (None, 'How did you even get this result?')
 
 @app.route('/predictions',methods=['GET'])
 def get_predictions():
@@ -232,7 +230,7 @@ def login_page():
                     cur.execute("DELETE FROM sessions where id = %s",
                             (prevsession,))
             return render_template("login.html", msg=resultstr)
-        expiration = timedelta(minutes=20) + datetime.utcnow()
+        expiration = timedelta(minutes=60) + datetime.utcnow()
         htmresp = make_response(render_template('login.html',msg=resultstr))
         htmresp.set_cookie('session',session,expires=expiration)
         htmresp.set_cookie('user',request.form['username'])
@@ -248,40 +246,46 @@ def logout():
                     (session,))
     return render_template("login.html",msg='You are logged out!')
 
-# -------
 # ------------------------------
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True)
+def on_exit():
     conn.commit()
     conn.close()
+
+import atexit
+atexit.register(on_exit)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', debug=True)
+
+
+
 
 def test_login():
     with app.test_client() as tester:
         resp = tester.post("/login",
             data=dict(
                 username="testuser",
-                password="pass1"),
-            follow_redirects=True)
-
+                password="pass1"))
         assert resp.status_code == 200
-        assert "you are logged in!" in resp.get_data() 
+        assert "testuser is logged in!" in resp.get_data()
+
         resp = tester.post("/login",
             data=dict(
                 username="notauser",
-                password=""),
-            follow_redirects=True)
+                password=""))
         assert resp.status_code == 200
         assert 'Invalid username or password' in resp.get_data()
+
         resp = tester.post("/login",
             data=dict(
                 username="testuser",
-                password="wrong pass"),
-            follow_redirects=True)
+                password="wrong pass"))
         assert resp.status_code == 200
         assert 'Invalid username or password' in resp.get_data()
+
         resp = tester.get("/logout")
         assert resp.status_code == 200
-        assert "you are logged out!" in resp.get_data()
+        assert "You are logged out!" in resp.get_data()
 
 
 def test_newpred():
@@ -289,21 +293,26 @@ def test_newpred():
         resp = tester.post("/login",
             data=dict(
                 username="testuser",
-                password="pass1"),
-            follow_redirects=True)
+                password="pass1"))
         assert resp.status_code == 200
+
         from random import randint
         randtext="test input " + str(randint(-99999,99999))
         resp = tester.post("/new",
             data=dict(
                 statement=randtext,
                 smalltext="",
-                expecteddate="2015-12-25"),
+                expectresolved="2015-12-25"),
             follow_redirects=True)
+        assert resp.status_code == 200
+        assert "User Predictions" in resp.get_data()
+
+        resp = tester.get("/predictions")
         assert resp.status_code == 200
         assert randtext in resp.get_data()
 
-
+def test_bets():
+    assert false
 
 # make sure the table kicks out old sessions regularlike
 # use the login page to create a session
