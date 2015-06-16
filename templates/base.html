@@ -4,10 +4,37 @@
     {% block head %}
     <title>{% block title %}{%endblock %}</title>
     {% endblock %}
+    <style>
+        body{
+            width:100%;
+        }
+        #nav{
+            position:relative;
+            width:10%;
+            padding-top:15px;
+            float:left;
+            margin:10px;
+        }
+        #nav a{
+            display:inline-block;
+            margin-bottom:10px;
+        }
+        #content {
+            position:relative;
+            width:85%;
+            float:left;
+        }
+    </style>
 </head>
  
 
 <body>
+    <div id="nav">
+        <a href="{{ url_for('login_page') }}">Login</a>
+        <a href="{{ url_for('predplusbets') }}">Predictions</a>
+        <a href="{{ url_for('add_prediction') }}">New Market</a>
+    </div>
+
     <div id="content">
         {% block content %}
         {% endblock %}

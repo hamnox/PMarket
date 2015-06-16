@@ -112,6 +112,7 @@ def get_predictions():
             query = json.dumps(query)
         return query
 
+@app.route('/', methods=['GET','POST'])
 @app.route('/api/1/', methods=['GET','POST'])
 def predplusbets():
     user, string = verify_session(request.cookies)
@@ -265,21 +266,9 @@ def get_bets():
             query = json.dumps(query)
         return query
 
-# self-explanatory, it tunes the app to accept the '/' address
-# it looks like it just takes the next definitions to be the related function.
-@app.route('/')
-def index():
-    user, string = verify_session(request.cookies)
-    if user == None:
-        return render_template("login.html",msg=string)
-    else:
-        return render_template("predictions.html",
-                    display_title="User Predictions",
-                    sendurl=url_for('get_predictions'))
-
-# obviously have to fix this later
 @app.route('/new',methods=['GET','POST'])
 def add_prediction():
+    #TODO: privacy checkbox
     if request.method == 'POST':
         user, string = verify_session(request.cookies)
         if user == None:
